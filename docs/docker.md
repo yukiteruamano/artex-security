@@ -410,9 +410,19 @@ make docker-up-volumes              # or use named volumes, which inherit the im
 `make docker-prep` (a dependency of `docker-up` and `docker-up-local`) creates both
 directories and makes them belong to the uid the stack runs as. It never needs host root: when
 the directories belong to someone else it runs `chown` through a throwaway container of this
-same image, as root, over the same bind mounts. If that is impossible (no image, no docker
-socket) it stops with the two manual options instead of starting a stack whose every agent
-command would fail.
+same image, as root, over the same bind mounts. That container needs `CAP_CHOWN`, which this
+compose file deliberately drops for the app (`cap_drop: ALL`), so the target adds it back with
+`--cap-add CHOWN --cap-add FOWNER` for the one shot - a restricted service is the reason a plain
+`compose run` cannot chown on its own. If that is still impossible (no image, no docker socket,
+or a runtime that forbids chown), it stops with the manual options instead of starting a stack
+whose every agent command would fail.
+
+The escape hatch, when the Make target cannot do it:
+
+```bash
+docker run --rm --user 0 -v "$PWD/data:/d" -v "$PWD/skills:/s" \
+  --entrypoint chown ghcr.io/yukiteruamano/artex-security:latest -R 10001:10001 /d /s
+```
 
 At start-up the daemon creates `<data>/tasks` and `<data>/sessions` once and, when it cannot,
 logs the path, the uid and the `chown` command in a single `[workspace] ERROR` line. The UI

@@ -238,8 +238,9 @@ docker-prep: ## Make ./data and ./skills writable by the container user (no host
 		echo "data/ and skills/ are writable by you ($$uid:$$gid)"; \
 	else \
 		echo "data/ does not belong to the container user $$uid; chowning it with a throwaway container (no host root needed)"; \
-		if ! $(COMPOSE) run --rm --no-deps --user 0 --entrypoint chown artex -R "$$uid:$$gid" /app/data /app/skills; then \
-			printf '\ncould not fix the ownership automatically. Pick one, then re-run:\n' >&2; \
+		if ! $(COMPOSE) run --rm --no-deps --user 0 --cap-add CHOWN --cap-add FOWNER \
+			--entrypoint chown artex -R "$$uid:$$gid" /app/data /app/skills; then \
+			printf '\nthe chown container could not change the ownership. Pick one, then re-run:\n' >&2; \
 			printf '  chown -R %s:%s data skills                  # as root\n' "$$uid" "$$gid" >&2; \
 			printf '  ARTEX_UID=%s ARTEX_GID=%s make docker-up     # only helps if you own data/\n' "$$(id -u)" "$$(id -g)" >&2; \
 			exit 1; \
