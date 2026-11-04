@@ -12,7 +12,7 @@ Master execution plan for the change set requested in one go:
 8. **Security review** of the whole project with fixes.
 9. Tests for every functional change; no regressions.
 
-Branch: `chore/i18n-en-es-hardening`. Baseline (`fdfb7a1`, before any change):
+Branch: `master`. Baseline (`fdfb7a1`, before any change):
 `go build ./...`, `go vet ./...`, `go test ./... -count=1` all green.
 
 ---
@@ -24,7 +24,7 @@ Branch: `chore/i18n-en-es-hardening`. Baseline (`fdfb7a1`, before any change):
 | D1 | Non-English documents are **deleted**; the English variant becomes the canonical file name. | "Any other language is prohibited." |
 | D2 | **Full English source language**: Chinese agent prompt bodies and the Korean error-message *keys* are rewritten in English. Spanish remains as a translation overlay. | Owner chose "Full inglés: prompts y claves" over the lower-risk hybrid. |
 | D3 | Dependency policy: latest **minor/patch** applied; **major** bumps only when the changelog does not break the API and build+tests stay green. | Least risk of behavioural regression in an autonomous pentest agent. |
-| D4 | Delivery: commits per area on `chore/i18n-en-es-hardening`. | Reviewable diffs. |
+| D4 | Delivery: commits per area on `master`. | Reviewable diffs. |
 | D5 | Agent *behaviour* must not change beyond language: identical prompt semantics, identical tool contracts, identical test expectations (translated, not relaxed). | Avoid silent capability drift. |
 
 ### Consequences of D2 (important)
