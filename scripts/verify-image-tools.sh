@@ -22,11 +22,19 @@ docker run --rm --entrypoint /bin/sh "$img" -c '
   printf "paths ok\n"
 '
 
-# Each command must actually run and report a version: catches a broken interpreter, a
-# mangled archive or a wrapper that shadows the binary with something non-executable.
-docker run --rm --entrypoint /bin/sh "$img" -c 'nuclei -version 2>&1 | head -3'
-docker run --rm --entrypoint /bin/sh "$img" -c 'sqlmap --version 2>&1 | head -3'
-docker run --rm --entrypoint /bin/sh "$img" -c 'commix --version 2>&1 | head -3'
+# Each wrapper must actually run and report a version: the first output line is printed, the full
+# output is shown only on failure. Command substitution is what makes the exit status visible - a
+# tool piped straight into head reports head's status and a wrapper pointing at a missing file
+# would pass silently, which is exactly how a broken wrapper survived the first build.
+docker run --rm --entrypoint /bin/sh "$img" -c '
+  set -eu
+  for c in nuclei sqlmap commix; do
+    flag="--version"
+    if [ "$c" = nuclei ]; then flag="-version"; fi
+    out=$("$c" "$flag" 2>&1) || { printf "%s failed:\n%s\n" "$c" "$out" >&2; exit 1; }
+    printf "%-8s %s\n" "$c" "$(printf "%s\n" "$out" | head -1)"
+  done
+'
 
 if [ -n "${NUCLEI_VERSION:-}" ]; then
   if ! docker run --rm --entrypoint /bin/sh "$img" -c "nuclei -version 2>&1 | grep -q '${NUCLEI_VERSION}'"; then

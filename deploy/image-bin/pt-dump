@@ -1,5 +1,6 @@
 #!/bin/sh
-# Pinned wrapper (installed as the SQL injection framework's command): keep session and output
-# files inside the current per-task working directory instead of $HOME, which is where the
-# agents are told to write.
-exec python3 /opt/pt-dump/pt-dump.py --disable-coloring --output-dir "${PWD}/pt-dump-out" "$@"
+# Installed as the SQL injection framework's command. HOME is pointed at the current per-task
+# working directory, so the tool's own session/output tree lands inside the task instead of in the
+# runtime user's home - no tool flag is assumed here, so a wrapper can never break a call by
+# guessing an option name.
+HOME="${PWD}" exec python3 /opt/sqlmap/sqlmap.py "$@"

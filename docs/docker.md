@@ -364,9 +364,10 @@ binaries.
 
 - `nuclei` runs the real binary with the update check disabled (templates are read-only in
   `/opt`) and colour off.
-- `sqlmap` and `commix` run their Python entry points with `--output-dir` pointed at the
-  current working directory, so session dumps land in the per-task directory instead of
-  `$HOME` — the artifact discipline the prompts require.
+- `sqlmap` and `commix` run their Python entry points with `HOME` pointed at the current
+  working directory, so their own session tree lands in the per-task directory instead of the
+  runtime user's home - the artifact discipline the prompts require. No tool flag is assumed, so
+  a wrapper cannot break a call by guessing an option name that the tool does not have.
 
 The wrapper *files* are named `pt-dump`/`pt-inject` because their content and destination are
 what matter here, and a neutral file name keeps the mapping visible in one place

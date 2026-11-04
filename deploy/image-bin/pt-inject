@@ -1,4 +1,4 @@
 #!/bin/sh
-# Pinned wrapper (installed as the command injection framework's command): output stays in the
-# current per-task working directory, never $HOME.
-exec python3 /opt/pt-inject/pt-inject.py --output-dir "${PWD}/pt-inject-out" "$@"
+# Installed as the command injection framework's command. HOME is pointed at the current per-task
+# working directory so the tool's own state stays inside the task, without assuming any tool flag.
+HOME="${PWD}" exec python3 /opt/commix/commix.py "$@"
