@@ -52,7 +52,9 @@ SKIP_DIRS = {".git", "node_modules", ".next", "out", "dist", "data"}
 TEXT_EXTS = {
     ".go", ".ts", ".tsx", ".js", ".mjs", ".py", ".sh", ".sql", ".yml", ".yaml", ".md",
     ".json", ".txt", ".csv", ".rules", ".bat", ".example", ".conf",
+    # dotfiles have no extension, so they are matched by name below
 }
+TEXT_NAMES = {".gitignore", ".gitattributes", ".dockerignore"}
 BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "non-english-baseline.json")
 
 
@@ -68,7 +70,7 @@ def walk(roots: list[str]):
         for base, dirs, files in os.walk(root):
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             for name in files:
-                if os.path.splitext(name)[1] in TEXT_EXTS:
+                if os.path.splitext(name)[1] in TEXT_EXTS or name in TEXT_NAMES:
                     yield os.path.join(base, name)
 
 
