@@ -45,7 +45,7 @@ function toolInput(raw: string): string {
 function truncate(s: string, maxLen: number): string {
   const first = s.split("\n")[0]; // single-line preview
   if (first.length <= maxLen) return first;
-  return first.slice(0, maxLen) + "…";
+  return `${first.slice(0, maxLen)}…`;
 }
 
 const PAGE_SIZES = [25, 50, 100];

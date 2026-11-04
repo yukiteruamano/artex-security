@@ -39,7 +39,7 @@ function workerColor(name: string): string {
 }
 
 const chip = (worker: string) =>
-  "mt-0.5 shrink-0 rounded px-1 text-[9px] font-medium text-white " + workerColor(worker);
+  `mt-0.5 shrink-0 rounded px-1 text-[9px] font-medium text-white ${workerColor(worker)}`;
 
 // useInView latches true when the ref'd element first comes within `rootMargin` of
 // the enclosing scroll viewport. Blocks that always show their full body (user
@@ -169,7 +169,7 @@ function toolInputText(tool: string, raw: string): string {
   if (m) {
     try {
       // re-wrap the captured body and parse to unescape \n, \", \\, etc.
-      return JSON.parse('"' + m[1] + '"');
+      return JSON.parse(`"${m[1]}"`);
     } catch {
       // truncated mid-escape — unescape the common sequences best-effort.
       return m[1].replace(/\\(["\\/nrt])/g, (_s, c) => (c === "n" ? "\n" : c === "r" ? "\r" : c === "t" ? "\t" : c));
@@ -474,11 +474,11 @@ function ToolBlock({
         <span className="mt-0.5 text-muted-foreground">
           {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         </span>
-        <ToolIcon className={"mt-0.5 size-3.5 shrink-0 " + (running ? "text-sky-600 dark:text-sky-400" : statusTone)} />
+        <ToolIcon className={`mt-0.5 size-3.5 shrink-0 ${running ? "text-sky-600 dark:text-sky-400" : statusTone}`} />
         {showWorker && <span className={chip(group.worker)}>{group.worker}</span>}
         <span className="shrink-0 font-medium text-sky-600 dark:text-sky-400">{toolName}</span>
         {cmd && <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">{cmd}</span>}
-        <span className={"ml-auto shrink-0 font-medium " + statusTone}>{statusText}</span>
+        <span className={`ml-auto shrink-0 font-medium ${statusTone}`}>{statusText}</span>
       </button>
       {open && (
         <pre className="ml-7 mb-1 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-muted/50 p-2 font-mono text-[11px] leading-relaxed">
@@ -543,9 +543,9 @@ function MessageBlock({
         <span className="mt-0.5 text-muted-foreground">
           {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         </span>
-        <Icon className={"mt-0.5 size-3.5 shrink-0 " + tone} />
+        <Icon className={`mt-0.5 size-3.5 shrink-0 ${tone}`} />
         {showWorker && <span className={chip(group.worker)}>{group.worker}</span>}
-        <span className={"min-w-0 flex-1 truncate " + tone}>
+        <span className={`min-w-0 flex-1 truncate ${tone}`}>
           {body}
           {hasThinking && <span className="ml-1 text-[10px] text-muted-foreground">· {t("withThinking")}</span>}
         </span>
@@ -720,27 +720,27 @@ function ExecView({
     <div className="flex flex-col">
       {groupSteps(activity, !!chat).map((g) =>
         g.type === "round" ? (
-          <div key={"r" + g.key} className="my-2 flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+          <div key={`r${g.key}`} className="my-2 flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             {g.label || t("newRound")}
             <span className="h-px flex-1 bg-border" />
           </div>
         ) : g.type === "user" ? (
-          <UserRow key={"u" + g.key} step={g.step} intent={g.intent} getDetail={getDetail} />
+          <UserRow key={`u${g.key}`} step={g.step} intent={g.intent} getDetail={getDetail} />
         ) : g.type === "answer" ? (
-          <AnswerBlock key={"a" + g.key} step={g.step} getDetail={getDetail} />
+          <AnswerBlock key={`a${g.key}`} step={g.step} getDetail={getDetail} />
         ) : g.type === "tool" ? (
           <ToolBlock
-            key={"t" + g.key}
+            key={`t${g.key}`}
             group={g}
             getDetail={getDetail}
             showWorker={showWorker}
             focused={focusedSeq != null && g.use?.seq === focusedSeq}
           />
         ) : g.type === "intercept" ? (
-          <InterceptCard key={"ic" + g.key} step={g.step} getDetail={getDetail} />
+          <InterceptCard key={`ic${g.key}`} step={g.step} getDetail={getDetail} />
         ) : (
-          <MessageBlock key={"m" + g.key} group={g} getDetail={getDetail} showWorker={showWorker} />
+          <MessageBlock key={`m${g.key}`} group={g} getDetail={getDetail} showWorker={showWorker} />
         ),
       )}
     </div>

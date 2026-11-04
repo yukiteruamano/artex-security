@@ -77,7 +77,13 @@
         "useNullishCoalescing": "error",
         "noFloatingPromises": "error",
         "noMisusedPromises": "error",
-        "useTailwindSortedClasses": "on"
+        // Off on purpose: this nursery rule rewrites class lists into Tailwind's canonical
+        // order, and its fix is marked unsafe. Inside cn()/twMerge() calls the order decides
+        // which utility wins (that is what tailwind-merge is for), and this codebase mixes
+        // p-*/px-*/py-* in the same literal, so the rewrite can silently change spacing.
+        // 736 of the 961 diagnostics were this rule's infos; keeping it off keeps the report
+        // to findings that are safe to act on.
+        "useTailwindSortedClasses": "off"
       },
       "performance": {
         "noImgElement": "warn"

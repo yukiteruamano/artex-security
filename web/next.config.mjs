@@ -8,6 +8,30 @@ const isExport = process.env.NEXT_EXPORT === "1";
 // Vercel demo: the whole site runs on mocks, no backend, no /api rewrite needed.
 const isMock = process.env.NEXT_PUBLIC_MOCK === "1";
 
+// Per-mode options, spelled out as branches instead of a nested ternary: static export
+// (NEXT_EXPORT=1), the Vercel mock demo (NEXT_PUBLIC_MOCK=1), or plain development.
+function modeOptions() {
+  if (isExport) {
+    // Pure static export: no Node runtime; images are not optimized; each route emits <route>/index.html.
+    return {
+      output: "export",
+      images: { unoptimized: true },
+      trailingSlash: true,
+    };
+  }
+  if (isMock) {
+    // Vercel mock demo: no backend, no /api rewrite needed.
+    return { images: { unoptimized: true } };
+  }
+  // Development: rewrite /api/* to the Go backend (default :8787, override with AUTOPENTEST_API).
+  return {
+    async rewrites() {
+      const backend = process.env.AUTOPENTEST_API ?? "http://localhost:8787";
+      return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+    },
+  };
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Keep a parent-directory lockfile from affecting root inference and asset path generation.
@@ -29,25 +53,7 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
-  ...(isExport
-    ? {
-        // Pure static export: no Node runtime; images are not optimized; each route emits <route>/index.html.
-        output: "export",
-        images: { unoptimized: true },
-        trailingSlash: true,
-      }
-    : isMock
-      ? {
-          // Vercel mock demo: no backend, no /api rewrite needed.
-          images: { unoptimized: true },
-        }
-      : {
-          // Development: rewrite /api/* to the Go backend (default :8787, override with AUTOPENTEST_API).
-          async rewrites() {
-            const backend = process.env.AUTOPENTEST_API ?? "http://localhost:8787";
-            return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
-          },
-        }),
+  ...modeOptions(),
 };
 
 // next-intl plugin. Request config lives in src/i18n/request.ts. Since i18n path routing is

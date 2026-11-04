@@ -234,7 +234,7 @@ function ToolEditor({
           {rows.length === 0 && <span className="text-muted-foreground text-xs">{t("noParams")}</span>}
           {rows.map((r, i) => (
             <div
-              key={(r.parentKey ?? "") + "." + r.name}
+              key={`${r.parentKey ?? ""}.${r.name}`}
               className={
                 r.parentKey ? "border-l-2 border-muted ml-3 pl-3 grid gap-2 py-2" : "grid gap-2 rounded-md border p-3"
               }

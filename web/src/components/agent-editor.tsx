@@ -2,16 +2,7 @@
 
 import * as React from "react";
 
-import {
-  EyeIcon,
-  GitCompareIcon,
-  InfoIcon,
-  PencilIcon,
-  RotateCcwIcon,
-  SaveIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
+import { EyeIcon, GitCompareIcon, PencilIcon, RotateCcwIcon, SaveIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
