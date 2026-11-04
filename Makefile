@@ -225,19 +225,27 @@ password: ## Reset the admin password (local psql or the postgres container)
 ##@ Docker
 
 .PHONY: docker-prep
-docker-prep: ## Create ./data and ./skills with the ownership the container runs as
+docker-prep: ## Make ./data and ./skills writable by the container user (no host root needed)
 	mkdir -p data skills
 	@uid=$${ARTEX_UID:-10001}; gid=$${ARTEX_GID:-10001}; \
-	if [ "$$(id -u)" = 0 ]; then \
+	owned() { [ -n "$$(find "$$1" -maxdepth 0 -uid "$$uid" -print -quit 2>/dev/null)" ]; }; \
+	if owned data && owned skills; then \
+		echo "data/ and skills/ already belong to the container user $$uid:$$gid"; \
+	elif [ "$$(id -u)" = 0 ]; then \
 		chown -R "$$uid:$$gid" data skills; \
-		echo "data/ and skills/ are owned by $$uid:$$gid (the container user)"; \
-	elif [ ! -w data ] && [ "$$(id -u)" != "$$uid" ]; then \
-		echo "data/ is not writable by the container user $$uid, so no agent can run a command." >&2; \
-		echo "fix it once as root:  chown -R $$uid:$$gid data skills" >&2; \
-		echo "or run the stack as yourself:  ARTEX_UID=$$(id -u) ARTEX_GID=$$(id -g) make docker-up" >&2; \
-		exit 1; \
+		echo "handed data/ and skills/ to $$uid:$$gid"; \
+	elif [ "$$(id -u)" = "$$uid" ] && [ -w data ] && [ -w skills ]; then \
+		echo "data/ and skills/ are writable by you ($$uid:$$gid)"; \
+	else \
+		echo "data/ does not belong to the container user $$uid; chowning it with a throwaway container (no host root needed)"; \
+		if ! $(COMPOSE) run --rm --no-deps --user 0 --entrypoint chown artex -R "$$uid:$$gid" /app/data /app/skills; then \
+			printf '\ncould not fix the ownership automatically. Pick one, then re-run:\n' >&2; \
+			printf '  chown -R %s:%s data skills                  # as root\n' "$$uid" "$$gid" >&2; \
+			printf '  ARTEX_UID=%s ARTEX_GID=%s make docker-up     # only helps if you own data/\n' "$$(id -u)" "$$(id -g)" >&2; \
+			exit 1; \
+		fi; \
 	fi
-	@echo "run the stack with: ARTEX_UID=$$(id -u) ARTEX_GID=$$(id -g) make docker-up"
+	@echo "the stack runs as $${ARTEX_UID:-10001}:$${ARTEX_GID:-10001} (export ARTEX_UID/ARTEX_GID to change it)"
 
 .PHONY: image-tools-check
 image-tools-check: ## Verify the offensive toolchain inside the built image (needs docker)
@@ -266,7 +274,7 @@ docker-up: docker-prep ## Start the stack (published image, loopback ports)
 	@echo "UI: http://127.0.0.1:8787 (first visit: /setup)"
 
 .PHONY: docker-up-local
-docker-up-local: docker-prep docker-build ## Build from source and start the stack
+docker-up-local: docker-build docker-prep ## Build from source and start the stack
 	$(COMPOSE) up -d
 
 .PHONY: docker-up-volumes

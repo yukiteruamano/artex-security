@@ -402,10 +402,17 @@ bind-mounted over `/app/data` and is owned by someone the container user cannot 
 `${ARTEX_UID:-10001}`, so the mounted directory has to belong to that uid:
 
 ```bash
-make docker-prep                    # chowns data/ and skills/ when run as root; otherwise diagnoses
+make docker-prep                    # fixes the ownership itself, no host root needed
 ARTEX_UID=$(id -u) ARTEX_GID=$(id -g) make docker-up   # or run the container as yourself
 make docker-up-volumes              # or use named volumes, which inherit the image's ownership
 ```
+
+`make docker-prep` (a dependency of `docker-up` and `docker-up-local`) creates both
+directories and makes them belong to the uid the stack runs as. It never needs host root: when
+the directories belong to someone else it runs `chown` through a throwaway container of this
+same image, as root, over the same bind mounts. If that is impossible (no image, no docker
+socket) it stops with the two manual options instead of starting a stack whose every agent
+command would fail.
 
 At start-up the daemon creates `<data>/tasks` and `<data>/sessions` once and, when it cannot,
 logs the path, the uid and the `chown` command in a single `[workspace] ERROR` line. The UI
