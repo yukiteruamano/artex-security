@@ -32,9 +32,9 @@ func TestJudgePromptPolicyContract(t *testing.T) {
 // destructive class is escalated instead. A reintroduced "Then DENY" would silently block
 // authorized work with no human in the loop.
 func TestJudgeNeverHardRefuses(t *testing.T) {
-	for _, marker := range []string{"Then DENY", "# DENY", "Never answer deny", "the operator has the last word"} {
+	for _, marker := range []string{"Then DENY", "# DENY", "Never answer deny", "operator has the last word"} {
 		contains := strings.Contains(DefaultJudgePrompt, marker)
-		wantPresent := marker == "Never answer deny" || marker == "the operator has the last word"
+		wantPresent := marker == "Never answer deny" || marker == "operator has the last word"
 		if contains != wantPresent {
 			t.Errorf("marker %q present=%v, want %v", marker, contains, wantPresent)
 		}
