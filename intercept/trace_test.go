@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 func TestTraceExactCorrelationAndSnapshot(t *testing.T) {

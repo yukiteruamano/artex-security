@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Manual CRUD API for overview "constraint management", plus resolution of the

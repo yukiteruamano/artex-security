@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database/sql driver ("pgx")
-	"github.com/yukiteruamano/artex-global/config"
+	"github.com/yukiteruamano/artex-security/config"
 )
 
 //go:embed schema.sql

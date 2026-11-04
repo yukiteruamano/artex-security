@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // TestCoreTaskLifecyclePG exercises the migrated core (tasks/exploration on PG)

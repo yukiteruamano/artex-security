@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // TestTaskLLMResolutionLocalized guards F18: every user-facing reason/label that

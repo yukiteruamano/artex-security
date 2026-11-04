@@ -90,11 +90,11 @@ Upstream (Chinese UI) captures preserved for comparison are described in [`scree
 
 > **Prerequisites:** Docker and Docker Compose. The database is **PostgreSQL**, brought up by compose. Exploration requires an **LLM** (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`; can also be set in the UI).
 
-> **Image:** the `artex` service in `docker-compose.yml` pulls `ghcr.io/yukiteruamano/artex-global`, the global-edition image this repository publishes to GitHub Container Registry on every release tag (`v*`). The default tag is `latest` (the most recent release); set `ARTEX_TAG` in `.env` to pin a specific release. Upstream's original image `autumn27/artex` has been taken down from Docker Hub and is no longer used.
+> **Image:** the `artex` service in `docker-compose.yml` pulls `ghcr.io/yukiteruamano/artex-security`, the global-edition image this repository publishes to GitHub Container Registry on every release tag (`v*`). The default tag is `latest` (the most recent release); set `ARTEX_TAG` in `.env` to pin a specific release. Upstream's original image `autumn27/artex` has been taken down from Docker Hub and is no longer used.
 
 ```bash
 git clone https://github.com/yukiteruamano/artex-security.git
-cd artex-global
+cd artex-security
 cp .env.example .env          # set POSTGRES_PASSWORD; ANTHROPIC_API_KEY is optional
 docker compose up -d          # brings up the artex image + postgres together
 # → open http://localhost:8787 (on first visit, set the admin password at /setup)
@@ -109,7 +109,7 @@ Upstream provides several methods: an install script (`./install.sh`), precompil
 
 > **Supported platform: Linux.** Release binaries and the release images are built for `linux/amd64` and `linux/arm64` only, and the shell scripts (`install.sh`, `start.sh`, `update.sh`) assume a POSIX system. On any other host, run the container stack from the quick start above — it works wherever Docker runs.
 
-- **Install script:** running `./install.sh` detects/installs Docker and then lets you choose "① all-in-Docker" or "② local compile and run." "① all-in-Docker" pulls and starts the same image as the quick start above (`ghcr.io/yukiteruamano/artex-global`), while "② local compile and run" builds it yourself the same way as the **single-binary build from source** below.
+- **Install script:** running `./install.sh` detects/installs Docker and then lets you choose "① all-in-Docker" or "② local compile and run." "① all-in-Docker" pulls and starts the same image as the quick start above (`ghcr.io/yukiteruamano/artex-security`), while "② local compile and run" builds it yourself the same way as the **single-binary build from source** below.
 - **Container deployment and its security posture:** `docker-compose.yml` is the only stack — unprivileged user, `cap_drop: ALL` with a single `NET_RAW`, `no-new-privileges`, private database network, capped processes/logs/tmpfs, loopback-only ports. Setup, API keys, the verification commands, the opt-in read-only and named-volume overlays and the known limitations are in [docs/docker.md](docs/docker.md).
 - **Single-binary build from source:**
 

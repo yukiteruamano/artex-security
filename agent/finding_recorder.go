@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // FindingRecorder is injected by the host; agents never synthesize or copy

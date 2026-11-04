@@ -1,6 +1,6 @@
 package agent
 
-// User-facing output language selection. artex-global forces the agent to write
+// User-facing output language selection. artex-security forces the agent to write
 // the natural-language surface a user reads in one of the supported display
 // languages (English or Spanish). The agent's "brain" — the benchmarked reasoning
 // body (section [A]) — stays language-independent; only the surface the user reads is

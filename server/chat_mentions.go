@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/yukiteruamano/artex-global/config"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/config"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 const maxChatMentions = 10

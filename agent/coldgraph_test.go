@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // helper: intent/fact node

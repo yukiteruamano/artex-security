@@ -1,6 +1,6 @@
 # Code Context — Go backend language/localization inventory (en+es target)
 
-Scope: Go non-`web` tree at `/GIT/artex-global`. All counts are from non-`_test.go` string
+Scope: Go non-`web` tree at `/GIT/artex-security`. All counts are from non-`_test.go` string
 literals unless stated. `grep` for Korean/Han inside `[...]` is unreliable in this
 shell (byte-wise range matching) — the numbers below come from a literal scanner.
 

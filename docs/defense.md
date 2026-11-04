@@ -157,7 +157,7 @@ description: |
     and earns weight only inside the correlation below.
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
-author: artex-global defense guide (generic template)
+author: artex-security defense guide (generic template)
 date: 2026-10-07
 tags:
     - attack.reconnaissance
@@ -186,7 +186,7 @@ description: |
     a coarse proxy for the broader "adapts requests to responses" behaviour the guide describes.
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
-author: artex-global defense guide (generic template)
+author: artex-security defense guide (generic template)
 date: 2026-10-07
 tags:
     - attack.initial-access
@@ -218,7 +218,7 @@ description: |
     too. This leg is broad by design and is only meaningful inside the correlation below.
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
-author: artex-global defense guide (generic template)
+author: artex-security defense guide (generic template)
 date: 2026-10-07
 tags:
     - attack.credential-access
@@ -255,7 +255,7 @@ description: |
     too strict and miss cases, relax to any two of the three.
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
-author: artex-global defense guide (generic template)
+author: artex-security defense guide (generic template)
 date: 2026-10-07
 tags:
     - attack.initial-access

@@ -3,7 +3,7 @@ package server
 import (
 	"sync"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Broadcaster is a per-task in-process pub/sub for live activity events. The

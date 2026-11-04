@@ -1,5 +1,5 @@
 <!--
-  This PR template is specific to artex-global (the ARTEX global edition).
+  This PR template is specific to artex-security (the ARTEX global edition).
   Please read CONTRIBUTING.md first for the contribution and localization policy.
 -->
 

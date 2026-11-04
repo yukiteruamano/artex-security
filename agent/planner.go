@@ -12,8 +12,8 @@ import (
 	"github.com/Autumn-27/norma/permission"
 	actool "github.com/Autumn-27/norma/tool"
 	"github.com/Autumn-27/norma/transcript"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/intercept"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/intercept"
 )
 
 // Planner is the event-driven LLM planner (docs §4.3): each time the asset or

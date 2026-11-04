@@ -34,7 +34,7 @@ type Config struct {
 	Language string `json:"language"`
 }
 
-// SupportedLanguages lists the user-facing output languages artex-global can
+// SupportedLanguages lists the user-facing output languages artex-security can
 // switch between: English (the source language) and Spanish. Agent output, UI
 // strings and backend messages all key off these.
 var SupportedLanguages = []string{"en", "es"}

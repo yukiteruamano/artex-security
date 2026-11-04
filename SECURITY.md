@@ -1,6 +1,6 @@
 # Security Policy
 
-This document explains how to report security vulnerabilities in the **ARTEX global edition (`artex-global`) code itself**. ARTEX is an offensive-security tool that performs penetration testing, but what this document covers is not the results of attacking something with the tool; it is **vulnerabilities that arise when you operate or deploy this software**.
+This document explains how to report security vulnerabilities in the **ARTEX global edition (`artex-security`) code itself**. ARTEX is an offensive-security tool that performs penetration testing, but what this document covers is not the results of attacking something with the tool; it is **vulnerabilities that arise when you operate or deploy this software**.
 
 For example:
 

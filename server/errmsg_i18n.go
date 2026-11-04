@@ -1,6 +1,6 @@
 package server
 
-import "github.com/yukiteruamano/artex-global/config"
+import "github.com/yukiteruamano/artex-security/config"
 
 // errCatalog holds the Spanish translation of every user-facing backend message.
 // English is the source language of this repository (see errmsg_catalog.go): the

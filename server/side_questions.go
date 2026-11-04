@@ -17,10 +17,10 @@ import (
 
 	"github.com/Autumn-27/norma/llm"
 	"github.com/Autumn-27/norma/transcript"
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/llmrec"
-	"github.com/yukiteruamano/artex-global/sidequestion"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/llmrec"
+	"github.com/yukiteruamano/artex-security/sidequestion"
 )
 
 // User-facing side-question messages surfaced through the HTTP API and the

@@ -275,7 +275,7 @@ reverts.
 ### 8.1 Check the repository's CI status by specifying the repository
 
 This repository is a fork of upstream ARTEX, so the local `git remote` has both `origin`
-(yukiteruamano/artex-global) and `upstream` (Autumn-27/ARTEX) registered (see section 3). In this state, if
+(yukiteruamano/artex-security) and `upstream` (Autumn-27/ARTEX) registered (see section 3). In this state, if
 you do not specify a repository in a `gh` command, `gh` **picks the upstream repository as the
 default** and shows you run results from upstream, which does not have our workflows. You can then see
 upstream CI green and **mistakenly think our CI passed**, or judge our workflows (`ci.yml`,
@@ -284,9 +284,9 @@ upstream CI green and **mistakenly think our CI passed**, or judge our workflows
 So when checking CI, always name the repository explicitly.
 
 ```bash
-gh run list -R yukiteruamano/artex-global --workflow ci.yml --limit 5
-gh run list -R yukiteruamano/artex-global --workflow detections.yml --limit 5
-gh run list -R yukiteruamano/artex-global --workflow security.yml --limit 5
+gh run list -R yukiteruamano/artex-security --workflow ci.yml --limit 5
+gh run list -R yukiteruamano/artex-security --workflow detections.yml --limit 5
+gh run list -R yukiteruamano/artex-security --workflow security.yml --limit 5
 ```
 
 Once set, you can make `gh` default to our repository even when you omit `-R`. Note, however, that
@@ -294,8 +294,8 @@ this setting is a **local gh setting** and is not committed to the repository, s
 again on a new machine or a new checkout.
 
 ```bash
-gh repo set-default yukiteruamano/artex-global
-gh repo set-default --view   # check that yukiteruamano/artex-global shows up
+gh repo set-default yukiteruamano/artex-security
+gh repo set-default --view   # check that yukiteruamano/artex-security shows up
 ```
 
 ### 8.2 Check external links in documents with GET, like a browser
@@ -386,7 +386,7 @@ The workflow is split into four jobs.
   without a maintainer-held key), and creates a GitHub Release with the zips and the checksum
   attached.
 - **docker.** Takes the linux binaries cross-compiled by binaries, builds a multi-architecture
-  (amd64/arm64) image, and pushes it to GitHub Container Registry as `ghcr.io/yukiteruamano/artex-global`
+  (amd64/arm64) image, and pushes it to GitHub Container Registry as `ghcr.io/yukiteruamano/artex-security`
   with the release tag and `latest`. It logs in with the workflow's built-in `GITHUB_TOKEN` (job
   permission `packages: write`), so no extra secrets are needed. The image manifest carries an SBOM
   and max-mode provenance (`docker buildx imagetools inspect <image>`), and the workflow deliberately
@@ -413,7 +413,7 @@ current repository structure by reproducing the binaries job locally.
 
 ### 9.4 The Docker image namespace
 
-Images are published to `ghcr.io/yukiteruamano/artex-global`, a namespace this fork owns, and
+Images are published to `ghcr.io/yukiteruamano/artex-security`, a namespace this fork owns, and
 `docker-compose.yml` pulls that image (decided 2026-10-11, `work/DECISIONS-FOR-JIWOO.md`, item 8).
 Upstream's `autumn27/artex` has been taken down from Docker Hub and this fork has no push access to
 it, so it is no longer used. A GHCR package may be created as private on its first publish, so after

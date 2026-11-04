@@ -13,7 +13,7 @@ import (
 
 	"github.com/Autumn-27/norma/harness"
 	"github.com/Autumn-27/norma/llm"
-	"github.com/yukiteruamano/artex-global/llmpool"
+	"github.com/yukiteruamano/artex-security/llmpool"
 )
 
 type fakeProvider struct {

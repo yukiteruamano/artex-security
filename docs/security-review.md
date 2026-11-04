@@ -1,4 +1,4 @@
-# Security review — artex-global
+# Security review — artex-security
 
 > **Status (2026-11).** The container findings in this review (H-2, H-3, M-7) were remediated by
 > consolidating the separate "hardened" stack into the single `docker-compose.yml`: the unprivileged

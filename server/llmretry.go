@@ -3,8 +3,8 @@ package server
 import (
 	"time"
 
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Server-side resolution of the retry policy, see the retry section of

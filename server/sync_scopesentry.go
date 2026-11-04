@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/mcphttp"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/mcphttp"
 )
 
 // Asset sync (ScopeSentry data source).

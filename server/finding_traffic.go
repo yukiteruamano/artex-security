@@ -14,9 +14,9 @@ import (
 	"unicode/utf8"
 
 	actool "github.com/Autumn-27/norma/tool"
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/evidence"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/evidence"
 )
 
 // The user-facing HTTP error responses. The four below are returned only from the HTTP

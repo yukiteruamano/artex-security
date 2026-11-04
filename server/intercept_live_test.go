@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/Autumn-27/norma/llm"
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/intercept"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/intercept"
 )
 
 // Opt-in model regression: sends synthetic review inputs only, never executes

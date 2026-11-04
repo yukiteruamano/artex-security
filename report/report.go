@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Input bundles what the report needs.

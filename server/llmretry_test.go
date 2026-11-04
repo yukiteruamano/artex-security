@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // With no configuration at all, the resolved result must be all zero — i.e. the built-in defaults of the SDK and task_llm respectively,

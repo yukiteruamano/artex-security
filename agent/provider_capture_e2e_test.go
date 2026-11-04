@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/Autumn-27/norma/llm"
-	"github.com/yukiteruamano/artex-global/llmrec"
+	"github.com/yukiteruamano/artex-security/llmrec"
 )
 
 // End-to-end through a real norma provider: the Capture rides the context into

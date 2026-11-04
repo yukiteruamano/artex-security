@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // TestNotifierDeliveryReasonsLocalized guards F17: every delivery failure/defer

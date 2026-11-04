@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 const maxBatchControlIDs = 100

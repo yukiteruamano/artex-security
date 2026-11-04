@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in the global edition of ARTEX (`artex-global`). This document
+Thank you for your interest in the global edition of ARTEX (`artex-security`). This document
 gathers the scope, policies, and procedures you should know before you start contributing.
 Before you send a contribution, please read [Authorized use and legal responsibility](#authorized-use-and-legal-responsibility)
 and [Localization policy](#localization-policy) first.

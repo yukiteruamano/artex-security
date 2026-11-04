@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/Autumn-27/norma/llm"
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/llmpool"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/llmpool"
 )
 
 // Server-side wiring for LLM failover (round-robin). Design: the LLM failover design

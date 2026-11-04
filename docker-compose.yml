@@ -60,7 +60,7 @@ services:
     # Image this fork publishes to GitHub Container Registry on every release tag (v*)
     # (the docker job in .github/workflows/release.yml). `build:` is here so the same
     # compose file can build from source (`docker compose build`); `up` uses the image.
-    image: ghcr.io/yukiteruamano/artex-global:${ARTEX_TAG:-latest}
+    image: ghcr.io/yukiteruamano/artex-security:${ARTEX_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

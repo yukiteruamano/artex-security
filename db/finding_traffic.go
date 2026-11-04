@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/notify"
+	"github.com/yukiteruamano/artex-security/notify"
 )
 
 var (

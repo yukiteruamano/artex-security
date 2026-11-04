@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 func TestFindingPaginationParam(t *testing.T) {

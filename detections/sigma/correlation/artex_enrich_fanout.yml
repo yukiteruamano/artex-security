@@ -1,3 +1,7 @@
+# Correlation rule: a Sigma v2 correlation rule has no `logsource`/`detection` block by
+# design — the `correlation:` section below references the base rule by id. A schema
+# validator that only knows detection rules reports "missing logsource/detection" for this
+# file; that is the schema's scope, not a defect. Verified with `sigma check detections/sigma/`.
 # references base rule: ../artex_enrich_user_agent.yml (ARTEX Asset Enrichment Probe User-Agent)
 title: ARTEX Enrichment Fan-Out (One Source, Many Distinct Hosts)
 id: 6fba3b7c-1dd9-4e18-bf55-d93fc1d2e2e0
@@ -14,7 +18,7 @@ description: |
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
     - https://github.com/yukiteruamano/artex-security
-author: artex-global defense guide
+author: artex-security defense guide
 date: 2026-10-05
 tags:
     - attack.reconnaissance

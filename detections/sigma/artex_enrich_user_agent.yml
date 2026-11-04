@@ -12,7 +12,7 @@ description: |
 references:
     - https://github.com/yukiteruamano/artex-security/blob/main/docs/defense.md
     - https://github.com/yukiteruamano/artex-security
-author: artex-global defense guide
+author: artex-security defense guide
 date: 2026-10-05
 tags:
     - attack.reconnaissance

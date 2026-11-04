@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	actool "github.com/Autumn-27/norma/tool"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // assetInterceptCandidates extracts the domain/IP/URL candidate strings of one pending asset input item, for asset intercept matching.

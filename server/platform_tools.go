@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	actool "github.com/Autumn-27/norma/tool"
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Platform operation tools (for the built-in Auto agent): create/edit skill, custom tool, MCP. All host tools,

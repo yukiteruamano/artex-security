@@ -3,7 +3,7 @@ package agent
 import (
 	"strings"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // constraintBlock renders this task's operation constraints (task_constraints) as a

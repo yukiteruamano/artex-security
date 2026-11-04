@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
-	pgdb "github.com/yukiteruamano/artex-global/db"
+	pgdb "github.com/yukiteruamano/artex-security/db"
 )
 
 func TestTaskArchivePackageFilesRoundTrip(t *testing.T) {

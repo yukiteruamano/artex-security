@@ -9,12 +9,12 @@ import (
 	"strconv"
 
 	actool "github.com/Autumn-27/norma/tool"
-	"github.com/yukiteruamano/artex-global/agent"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/traffic"
+	"github.com/yukiteruamano/artex-security/agent"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/traffic"
 )
 
-// Localization decision (artex-global): every string in this file is model input and
+// Localization decision (artex-security): every string in this file is model input and
 // none of them is ever returned in an HTTP response to the user. They are written in
 // English — the source language — and are not localized further. This file has zero
 // writeErr calls, so there is no user-facing path out of it. Three sinks, named by

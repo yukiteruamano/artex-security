@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yukiteruamano/artex-global/db"
+	"github.com/yukiteruamano/artex-security/db"
 )
 
 // Regression guard for the validation error responses that the custom-tool CRUD and test-run

@@ -290,7 +290,7 @@ docker-pull: ## Pull the published image (ARTEX_TAG in .env selects the tag)
 
 .PHONY: docker-audit
 docker-audit: ## Inspect the published image attestations (SBOM + provenance)
-	@echo "run: docker buildx imagetools inspect ghcr.io/yukiteruamano/artex-global:<tag>"
+	@echo "run: docker buildx imagetools inspect ghcr.io/yukiteruamano/artex-security:<tag>"
 
 ##@ Housekeeping
 

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yukiteruamano/artex-global/notify"
+	"github.com/yukiteruamano/artex-security/notify"
 )
 
 // This file is the channel config and event layer for IM push. Claiming and state transitions of delivery tasks are in

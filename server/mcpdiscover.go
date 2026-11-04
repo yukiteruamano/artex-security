@@ -9,8 +9,8 @@ import (
 
 	"github.com/Autumn-27/norma/mcp"
 	actool "github.com/Autumn-27/norma/tool"
-	"github.com/yukiteruamano/artex-global/db"
-	"github.com/yukiteruamano/artex-global/mcphttp"
+	"github.com/yukiteruamano/artex-security/db"
+	"github.com/yukiteruamano/artex-security/mcphttp"
 )
 
 // mcpClient is the shared surface of a connected MCP server (stdio, Streamable HTTP,

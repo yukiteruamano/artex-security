@@ -25,7 +25,7 @@ import (
 	"github.com/Autumn-27/norma/llm"
 	acperm "github.com/Autumn-27/norma/permission"
 	"github.com/Autumn-27/norma/transcript"
-	"github.com/yukiteruamano/artex-global/llmrec"
+	"github.com/yukiteruamano/artex-security/llmrec"
 )
 
 // Config describes the LLM backend resolved from the environment.

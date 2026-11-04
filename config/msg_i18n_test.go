@@ -17,7 +17,7 @@ func TestStartupMessageSwitchesLanguage(t *testing.T) {
 	t.Setenv("ARTEX_PG_DSN", "")
 	t.Setenv("ARTEX_CONFIG", filepath.Join(dir, "nope.json"))
 
-	// Default (no ARTEX_LANG) → English (artex-global source language).
+	// Default (no ARTEX_LANG) → English (artex-security source language).
 	t.Setenv("ARTEX_LANG", "")
 	def := mustDSNErr(t)
 	assertNoUnsupportedScript(t, "default startup error", def)
