@@ -344,16 +344,15 @@ usable at all.
 | Argument | Default | Notes |
 | --- | --- | --- |
 | `NUCLEI_VERSION` | `3.3.5` | Release tag of the scanner. |
-| `NUCLEI_SHA256` | *(empty)* | **Required.** SHA256 of `nuclei_<version>_linux_<arch>.zip`; the build refuses to continue without it rather than ship an unverified binary. |
+| `NUCLEI_SHA256_AMD64` / `NUCLEI_SHA256_ARM64` | pinned | The `linux_<arch>.zip` lines of the release's checksums file, pinned the same way as the Node tarball. Bump the version and both hashes together. |
+| `NUCLEI_SHA256` | *(empty)* | Optional override for both architectures; when set it replaces the pinned per-arch hash. |
 | `NUCLEI_TEMPLATES_REF` | `main` | Template repository ref, cloned to `/opt/nuclei-templates` (read-only at runtime). Pin a tag or commit for a reproducible image. |
 | `SQLMAP_REF` | `master` | Ref of the SQL injection framework, cloned to `/opt/sqlmap`. Pin a tag or commit. |
 | `COMMIX_REF` | `master` | Ref of the command injection framework, cloned to `/opt/commix`. Pin a tag or commit. |
 
-`make docker-image` therefore needs one extra variable on a clean host:
-
-```bash
-NUCLEI_SHA256=<sha256 of the release zip> make docker-image
-```
+Nothing extra is needed on a clean host: `make docker-image` builds with the pinned
+versions and verifies the downloaded binary against them. Point the build at another release
+with `NUCLEI_VERSION=<v> NUCLEI_SHA256=<sha256 of the zip>`.
 
 The three tools are baked at *image* level: updating them means rebuilding the image, not
 the one-click binary update. Pin the refs in CI so an image tag always means the same

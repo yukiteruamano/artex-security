@@ -32,7 +32,11 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     COREPACK_HOME=/usr/local/share/corepack \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-ENV PATH="$PNPM_HOME:$PATH"
+# pnpm puts globally installed binaries in $PNPM_HOME/bin, and since v10 it refuses a global
+# install when that directory is not on PATH (ERR_PNPM_GLOBAL_BIN_DIR_NOT_IN_PATH), so both the
+# home and its bin dir have to be exported - the bin half is what the playwright install below
+# needs.
+ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 # Operational tools: ripgrep / curl / vim plus the bundle reconnaissance reaches for most
 # often (add or drop as needed). xz-utils is for the Node tarball below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -84,23 +88,29 @@ RUN pnpm add -g @playwright/mcp playwright @playwright/cli \
 #   nuclei            release binary, pinned version, verified checksum, template set pulled
 #                     from a pinned ref and kept read-only in /opt
 #   sqlmap, commix    cloned at a pinned ref, driven through python3 (already in this base)
-# NUCLEI_SHA256 is REQUIRED and has no default: the checksum of nuclei_<version>_linux_<arch>.zip
-# from the release page. A published image must never carry an unverified binary, and inventing a
-# hash is worse than failing the build, so the build stops with a clear message instead.
+# The binary is verified against a checksum pinned here, mirroring the Node tarball above: the two
+# hashes are the linux_amd64 / linux_arm64 lines of
+# https://github.com/projectdiscovery/nuclei/releases/download/v<NUCLEI_VERSION>/nuclei_<NUCLEI_VERSION>_checksums.txt
+# so bump the version and both hashes together. Override NUCLEI_SHA256 for a build that pins the
+# release another way; an unverified binary never reaches the image.
 ARG NUCLEI_VERSION=3.3.5
+ARG NUCLEI_SHA256_AMD64=7daa9af79972f0c483fedd14d20badefeef9685eddb7f35f2fb1e7e59f08309d
+ARG NUCLEI_SHA256_ARM64=f7ff0048a1c92388b92e0b95e0885b478f91d25a4f0436688a0434f74e59cebc
 ARG NUCLEI_SHA256=
 ARG NUCLEI_TEMPLATES_REF=main
 ARG SQLMAP_REF=master
 ARG COMMIX_REF=master
 RUN set -eux; \
     case "$TARGETARCH" in \
-      amd64) nuclei_arch=amd64 ;; \
-      arm64) nuclei_arch=arm64 ;; \
+      amd64) nuclei_arch=amd64; nuclei_sha="${NUCLEI_SHA256:-$NUCLEI_SHA256_AMD64}" ;; \
+      arm64) nuclei_arch=arm64; nuclei_sha="${NUCLEI_SHA256:-$NUCLEI_SHA256_ARM64}" ;; \
       *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    [ -n "$NUCLEI_SHA256" ] || { echo "NUCLEI_SHA256 is required: the sha256 of nuclei_${NUCLEI_VERSION}_linux_${nuclei_arch}.zip (see docs/docker.md)" >&2; exit 1; }; \
-    curl -fsSLo /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_${nuclei_arch}.zip"; \
-    echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c -; \
+    [ -n "$nuclei_sha" ] || { echo "no checksum pinned for $TARGETARCH: set NUCLEI_SHA256" >&2; exit 1; }; \
+    zip="nuclei_${NUCLEI_VERSION}_linux_${nuclei_arch}.zip"; \
+    base="https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}"; \
+    curl -fsSLo /tmp/nuclei.zip "$base/$zip"; \
+    echo "$nuclei_sha  /tmp/nuclei.zip" | sha256sum -c -; \
     unzip -o -q /tmp/nuclei.zip -d /usr/local/bin nuclei; \
     rm /tmp/nuclei.zip; \
     mv /usr/local/bin/nuclei /usr/local/bin/nuclei.real; \
