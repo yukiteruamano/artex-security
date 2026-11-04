@@ -96,6 +96,10 @@ lint-workflows: check-tools ## Lint .github/workflows with actionlint
 .PHONY: lint
 lint: vet lint-web lint-shell lint-workflows ## All linters (go vet, biome, shellcheck, actionlint)
 
+.PHONY: prompts-check
+prompts-check: check-tools ## Fail when the dev_prompts drafts drifted from the Go prompt constants
+	$(GO) run dev_prompts/_extract/main.go --check
+
 .PHONY: i18n
 i18n: ## Verify the en/es message catalogues have identical key sets
 	cd $(WEB) && $(PNPM) run check:i18n
@@ -154,7 +158,7 @@ test-detections: ## Run the detection rule suites (needs Docker; the CI detectio
 	detections/tests/misp/run.sh
 
 .PHONY: check
-check: fmt-check lint test ## Local merge gate: format, lint, test
+check: fmt-check lint prompts-check test ## Local merge gate: format, lint, prompt sync, test
 
 .PHONY: ci
 ci: check docs-check posture ## Everything the push/PR workflows verify.
@@ -225,6 +229,10 @@ docker-prep: ## Create ./data and ./skills owned by the invoking user
 	mkdir -p data skills
 	@echo "run the stack with: ARTEX_UID=$$(id -u) ARTEX_GID=$$(id -g) make docker-up"
 
+.PHONY: image-tools-check
+image-tools-check: ## Verify the offensive toolchain inside the built image (needs docker)
+	scripts/verify-image-tools.sh "$${ARTEX_IMAGE:-artex:local}"
+
 .PHONY: dist-binaries
 dist-binaries: embed ## Pre-build the binary the image copies in (dist/<arch>/artex)
 	mkdir -p dist/$(TARGETARCH)
@@ -235,7 +243,8 @@ dist-binaries: embed ## Pre-build the binary the image copies in (dist/<arch>/ar
 
 .PHONY: docker-image
 docker-image: dist-binaries ## Build the local image as artex:local from the run-only Dockerfile
-	docker build --build-arg TARGETARCH=$(TARGETARCH) -t artex:local .
+	docker build --build-arg TARGETARCH=$(TARGETARCH) -t artex:local . && \
+		scripts/verify-image-tools.sh artex:local
 
 .PHONY: docker-build
 docker-build: dist-binaries ## Build the image through compose

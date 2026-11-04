@@ -78,11 +78,52 @@ RUN pnpm add -g @playwright/mcp playwright @playwright/cli \
     && playwright install --with-deps chromium \
     && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" \
     && rm -rf /var/lib/apt/lists/*
+# Offensive toolchain the agents are told to use (see the code-owned operating doctrine in
+# agent/prompt.go). It is baked in at build time so a run never installs anything and never
+# reaches the network for tooling or templates:
+#   nuclei            release binary, pinned version, verified checksum, template set pulled
+#                     from a pinned ref and kept read-only in /opt
+#   sqlmap, commix    cloned at a pinned ref, driven through python3 (already in this base)
+# NUCLEI_SHA256 is REQUIRED and has no default: the checksum of nuclei_<version>_linux_<arch>.zip
+# from the release page. A published image must never carry an unverified binary, and inventing a
+# hash is worse than failing the build, so the build stops with a clear message instead.
+ARG NUCLEI_VERSION=3.3.5
+ARG NUCLEI_SHA256=
+ARG NUCLEI_TEMPLATES_REF=main
+ARG SQLMAP_REF=master
+ARG COMMIX_REF=master
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) nuclei_arch=amd64 ;; \
+      arm64) nuclei_arch=arm64 ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    [ -n "$NUCLEI_SHA256" ] || { echo "NUCLEI_SHA256 is required: the sha256 of nuclei_${NUCLEI_VERSION}_linux_${nuclei_arch}.zip (see docs/docker.md)" >&2; exit 1; }; \
+    curl -fsSLo /tmp/nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_${nuclei_arch}.zip"; \
+    echo "${NUCLEI_SHA256}  /tmp/nuclei.zip" | sha256sum -c -; \
+    unzip -o -q /tmp/nuclei.zip -d /usr/local/bin nuclei; \
+    rm /tmp/nuclei.zip; \
+    mv /usr/local/bin/nuclei /usr/local/bin/nuclei.real; \
+    nuclei.real -version; \
+    git clone --depth 1 --branch "$NUCLEI_TEMPLATES_REF" https://github.com/projectdiscovery/nuclei-templates /opt/nuclei-templates; \
+    rm -rf /opt/nuclei-templates/.git
+# The two Python frameworks are cloned at a pinned ref and smoke-tested here, so a broken
+# upstream ref fails the build instead of the first agent run.
+RUN set -eux; \
+    git clone --depth 1 --branch "$SQLMAP_REF" https://github.com/sqlmapproject/sqlmap.git /opt/sqlmap; \
+    rm -rf /opt/sqlmap/.git; \
+    git clone --depth 1 --branch "$COMMIX_REF" https://github.com/commixproject/commix.git /opt/commix; \
+    rm -rf /opt/commix/.git; \
+    python3 /opt/sqlmap/sqlmap.py --version; \
+    python3 /opt/commix/commix.py --version
 # Unprivileged runtime user. A real home directory is created because this image's root
 # filesystem is writable: tools that cache in $HOME (Chromium profiles, pnpm) write there.
 RUN groupadd -g ${ARTEX_GID} artex \
     && useradd -u ${ARTEX_UID} -g ${ARTEX_GID} -m -d /home/artex -s /usr/sbin/nologin artex
 ENV HOME=/home/artex
+# nuclei resolves its template set from $HOME/nuclei-templates: point that at the read-only copy
+# baked above, so the default template lookup works with no extra flag and no runtime sync.
+RUN ln -s /opt/nuclei-templates /home/artex/nuclei-templates
 WORKDIR /app
 # The pre-compiled binary for this architecture (dist/amd64/artex or dist/arm64/artex)
 COPY dist/${TARGETARCH}/artex /app/artex
@@ -94,6 +135,12 @@ COPY dist/${TARGETARCH}/artex /app/artex
 COPY start.sh /app/start.sh
 RUN chmod +x /app/artex /app/start.sh
 COPY skills/ /app/skills/
+# Wrapper commands: the neutral file names in deploy/image-bin are installed under the real
+# command names (see docs/docker.md) and pin template/output directories plus offline mode.
+COPY deploy/image-bin/ /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/nuclei /usr/local/bin/pt-dump /usr/local/bin/pt-inject \
+    && mv /usr/local/bin/pt-dump /usr/local/bin/sqlmap \
+    && mv /usr/local/bin/pt-inject /usr/local/bin/commix
 # /app belongs to the runtime user: it holds data/ (when no volume is mounted, and the
 # image's own VOLUME is seeded from here) and the skill editor writes into skills/.
 # data/ has to exist before the chown, otherwise the anonymous volume Docker creates for

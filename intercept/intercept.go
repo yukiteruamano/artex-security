@@ -480,6 +480,10 @@ func (i *Interceptor) Judge(ctx context.Context, tool string, arguments json.Raw
 	default:
 		out = Decision{ProfileID: out.ProfileID, ModelFallback: true, Action: cfg.FailAction, Message: msgModelOutputUnparsable}
 	}
+	// The operator takes the final decision on destructive actions, so a model DENY is escalated
+	// instead of enforced - the same rule the judge prompt states. Operator-authored rule denies
+	// are a different path (HandleRule) and keep their hard behaviour.
+	out.Action = modelVerdict(out.Action)
 	// A model verdict never carries a rule; keep RuleID 0 (→ NULL) for history.
 	out.RuleID = 0
 	if len(modelInput) > 0 {
@@ -503,6 +507,17 @@ func (i *Interceptor) Judge(ctx context.Context, tool string, arguments json.Raw
 		out.TimeoutAction = cfg.AskTimeoutAction
 	}
 	return out, true
+}
+
+// modelVerdict maps a model verdict onto the policy the harness actually enforces. A model DENY
+// becomes ASK for the same reason the judge prompt may not refuse: the operator takes the final
+// decision on anything destructive, so a custom llm_judge_prompt cannot hard-block tested work.
+// Operator-authored rule denies (the rule path) are separate and keep their hard behaviour.
+func modelVerdict(action string) string {
+	if action == "deny" {
+		return "ask"
+	}
+	return action
 }
 
 func judgeActionLabel(action string) string {

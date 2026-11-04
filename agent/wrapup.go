@@ -47,11 +47,19 @@ var wrapupTurnDefaults = map[string]int{
 
 const genericWrapupTurns = 10
 
-const plannerWrapUpDefault = "This planning round's step budget is about to run out. Note that only [this round] ends — the system will keep waking you as the situation changes so you can continue planning. The work itself is not finishing, so there is no need to conclude the whole plan here. Do reflect the conclusions you have already clearly reached this round so the round is not wasted, but **do not invent intents just to have something to wrap up** (having 0 intents this round is a completely normal outcome). (1) If you have already judged an exploration direction that [must be dispatched right now], submit it in one add_intent call (do not sit on a decision you already made; send it now). (2) Mark goals already proven met by some finding or fact with prove_goal (do not skip this). (3) If you identified a serial exploit chain that has to be split into steps, record it with TodoWrite so you can continue dispatching it on the next wake-up. If everything is done, just end this round and output no summary text."
+const plannerWrapUpDefault = `This planning round's step budget is about to run out. Only this round ends: the system keeps waking you as the graph changes, so the work is not concluding and there is nothing to wrap up.
 
-const mainAgentWrapUpDefault = "The step budget is about to run out and this interaction is ending. Do not start any new exploration or action. **In one plain-text sentence only**, summarize the current progress, the key conclusion, and the recommended next step to the user in English."
+Do only what you already decided - zero new intents this round is a normal outcome:
+(1) If you already judged that a direction must be dispatched now, send it in one add_intent call. Do not sit on a decision you already made.
+(2) Mark goals already proven by an existing finding or fact with prove_goal.
+(3) If you identified a serial chain that has to be split into steps, record it with TodoWrite so the next wake-up continues from it instead of re-deriving it.
+Then end the round and output no summary text.`
 
-const genericWrapUpDefault = "This will end soon because the budget is exhausted. First record the results you completed but have not saved yet, then **in one plain-text sentence only** summarize what you did and which key conclusion you reached, in English (this one sentence is shown as the result of this run)."
+const mainAgentWrapUpDefault = `The step budget is about to run out and this interaction is ending. Start no new exploration and take no new action.
+
+**In one plain-text sentence only**, tell the user the current progress, the key conclusion and the recommended next step.`
+
+const genericWrapUpDefault = `This will end soon because the budget is exhausted. First record the results you already produced but have not saved - assets, then facts, then findings, highest value first if the time left allows only one. Then **in one plain-text sentence only**, state what you did and the key conclusion you reached; that sentence is shown to the user as this run's result.`
 
 // WrapupDefault returns the built-in default wrap-up prompt for an agent key —
 // used by the admin UI as the "restore default" value and empty-field placeholder.
@@ -147,9 +155,18 @@ var taskTimeoutWrapupDefaults = map[string]string{
 	"planner": plannerTaskTimeoutDefault,
 }
 
-const workerTaskTimeoutDefault = "**The whole task has reached its time limit and will end soon** (this is not this run's budget — the entire exploration is ending). This is the last chance. (1) Save [everything] you have already identified but not yet recorded. Record new assets with insert_assets, exploration conclusions and facts with record_fact, and confirmed vulnerabilities with report_finding. (2) Do not start any new command or probe. (3) **At the very end, in one plain-text sentence only**, summarize the key conclusion obtained from this intent, in English."
+const workerTaskTimeoutDefault = `**The whole task has reached its time limit and will end soon** (this is not this run's budget - the entire exploration is ending). This is the last chance to land results.
 
-const plannerTaskTimeoutDefault = "**The whole task has reached its time limit and will end soon** (not this round — the entire task is ending). Perform the final goal judgment based on [all] facts and findings gathered so far. Mark goals proven met by evidence with prove_goal (do not skip this). **Do not generate any new intent** (even if you dispatch one now, it will not run). When the judgment is done, end immediately and output no summary text."
+(1) Save [everything] you have already identified but not yet recorded: confirmed vulnerabilities with report_finding first, then new assets with insert_assets, then exploration conclusions with record_fact. Record only what you observed.
+(2) Start no new command and make no new probe.
+(3) **At the very end, in one plain-text sentence only**, give the key conclusion this intent produced. That sentence is the run's result shown to the user.`
+
+const plannerTaskTimeoutDefault = `**The whole task has reached its time limit and will end soon** (not this round - the entire task is ending). Do the final goal judgment on [all] the facts and findings gathered so far.
+
+- Mark every goal that an existing finding or fact actually proves with prove_goal. Do not skip one that qualifies.
+- Generate no new intent: even if you dispatch one now, it will not run.
+- Do not sign off a quantitative goal whose measured value does not meet the bar.
+When the judgment is done, end immediately and output no summary text.`
 
 // TaskTimeoutWrapupDefault returns an agent's built-in task-timeout wrap-up text
 // (for the admin placeholder / restore-default). Empty when unconfigured

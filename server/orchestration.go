@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -500,10 +502,10 @@ func (s *Server) seedOrchestrationTools() {
 	s.seedWorkerReadbackRebind()  // fix an earlier migration that deleted them: rebind search_all_worker_traces/get_worker_trace/node_detail to worker (one-time)
 	s.seedAutoReportFindingBinding()
 	s.unbindGoalMetDefault()
-	s.reseedGoalsPrompt()             // goals prompt gains the "extract operating constraints" step → append a new default version to old DBs (one-time)
-	s.reseedMainAgentPrompt()         // mainagent prompt gains "after the goal is met, add_intent asks whether to create a goal" (one-time)
-	s.reseedPlannerPrompt()           // planner prompt: rewrite the "0 intents" justification + add quantitative acceptance checks (one-time)
-	s.reseedWorkerPrompt()            // worker prompt: add an evidence bar for negative conclusions (one-time)
+
+	// Apply changed built-in prompt bodies to existing DBs (guarded: a user-edited prompt is kept).
+	s.refreshBuiltinPrompts()
+
 	s.seedReporterAgent()             // pre-configured "report writing" agent + tool bindings + finding trigger (one-time)
 	s.upgradeReporterTriggerMessage() // backfill migration: make the reporter return evidence_version (one-time)
 	s.seedFindingTrafficTools()       // add the optional evidence params and the read-only evidence tools, keeping user config
@@ -571,143 +573,71 @@ func (s *Server) unbindGoalMetDefault() {
 	_ = s.m.pg.SetSetting(flag, "true")
 }
 
-// reseedGoalsPrompt refreshes the goals goal-decomposer prompt to the CURRENT code default —
-// the default body gained a "extract operating constraints (set_constraints) first, then
-// decompose goals" step, and SeedPromptIfEmpty is first-insert-only, so an old DB's existing
-// version 1 never receives it. Version management is used to APPEND A NEW VERSION and switch
-// to it (ResetPromptToDefault); the old version stays in history, so a user who customised it
-// can recover it from the version log. Guarded by a settings flag → runs once; bump this flag
-// when the default changes again. A fresh DB needs nothing (SeedPromptIfEmpty already seeded
-// the latest default).
-func (s *Server) reseedGoalsPrompt() {
-	const flag = "goals_prompt_constraint_step_v1"
+// reseedPrompt refreshes one agent's prompt to the CURRENT code default: it appends a new
+// version and switches current to it. SeedPromptIfEmpty is first-insert-only, so an old DB
+// never receives a changed default — this is the only migration path for prompt text.
+//
+// Guard: the overwrite is skipped when the user customised that prompt. It works from the hash
+// of the default we last seeded (setting prompt_default_hash_<key>, recorded by seedPrompts and
+// by this function). No recorded hash means "unknown, pre-guard install" → the default is applied
+// once so the migration is not lost; from then on a customised prompt is never replaced, and the
+// operator is told the new default is available in the version history.
+//
+// flag makes the migration run ONCE per default change: bump it whenever the default changes.
+func (s *Server) reseedPrompt(flag, agentKey, tmpl, why string) {
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
 		return
 	}
 	defer func() { _ = s.m.pg.SetSetting(flag, "true") }() // attempt once regardless of success
-	a, err := s.m.pg.GetAgentByKey("goals")
-	if err != nil || a == nil {
-		return // a fresh DB has no agent row yet, so seedPrompts seeds the latest default directly; no migration needed
-	}
-	tmpl := agent.BuiltinPromptSeeds()["goals"]
 	if tmpl == "" {
 		return
 	}
-	// A fresh DB's seedPrompts already seeded the latest default → the current version already
-	// equals the code default, so there is no need to append a duplicate version.
-	if cur, err := s.m.pg.CurrentPrompt(a.ID); err == nil && cur == tmpl {
+	a, err := s.m.pg.GetAgentByKey(agentKey)
+	if err != nil || a == nil {
+		return // a fresh DB has no agent row yet: seedPrompts seeds the latest default directly
+	}
+	cur, err := s.m.pg.CurrentPrompt(a.ID)
+	if err != nil {
+		return
+	}
+	if cur == tmpl {
+		_ = s.m.pg.SetSetting(defaultHashKey(agentKey), promptHash(tmpl)) // fresh DB: nothing to migrate
+		return
+	}
+	if prev, ok, _ := s.m.pg.GetSetting(defaultHashKey(agentKey)); ok && prev != "" && prev != promptHash(cur) {
+		log.Printf("[prompts] %s prompt was customised by the user; keeping it (the new default stays in the version history)", agentKey)
 		return
 	}
 	if _, err := s.m.pg.ResetPromptToDefault(a.ID, tmpl); err != nil {
-		log.Printf("[prompts] refreshing goals prompt to the new default failed: %v", err)
+		log.Printf("[prompts] refreshing the %s prompt to the new default failed: %v", agentKey, err)
 		return
 	}
-	log.Printf("[prompts] appended a new default version of the goals prompt (adds the extract-operating-constraints step, one-time)")
+	_ = s.m.pg.SetSetting(defaultHashKey(agentKey), promptHash(tmpl))
+	log.Printf("[prompts] appended a new default version of the %s prompt (%s, one-time)", agentKey, why)
 }
 
-// reseedMainAgentPrompt refreshes the mainagent prompt to the CURRENT code default — the default
-// body gained guidance for "when the goals are all met and add_intent dispatches an intent
-// directly, ask the human whether to register it as a formal goal", and SeedPromptIfEmpty is
-// first-insert-only, so an old DB's existing version never receives it. Version management is
-// used to APPEND A NEW VERSION and switch to it (ResetPromptToDefault); the old version stays in
-// history, so a user who customised it can recover it from the version log. Guarded by a settings
-// flag → runs once. A fresh DB needs nothing (SeedPromptIfEmpty seeded the latest default).
-// Exactly parallel to reseedGoalsPrompt.
-func (s *Server) reseedMainAgentPrompt() {
-	const flag = "mainagent_prompt_goalless_intent_v1"
-	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
-		return
-	}
-	defer func() { _ = s.m.pg.SetSetting(flag, "true") }() // attempt once regardless of success
-	a, err := s.m.pg.GetAgentByKey("mainagent")
-	if err != nil || a == nil {
-		return // a fresh DB has no agent row yet, so seedPrompts seeds the latest default directly; no migration needed
-	}
-	tmpl := agent.BuiltinPromptSeeds()["mainagent"]
-	if tmpl == "" {
-		return
-	}
-	// A fresh DB's seedPrompts already seeded the latest default → the current version already
-	// equals the code default, so there is no need to append a duplicate version.
-	if cur, err := s.m.pg.CurrentPrompt(a.ID); err == nil && cur == tmpl {
-		return
-	}
-	if _, err := s.m.pg.ResetPromptToDefault(a.ID, tmpl); err != nil {
-		log.Printf("[prompts] refreshing mainagent prompt to the new default failed: %v", err)
-		return
-	}
-	log.Printf("[prompts] appended a new default version of the mainagent prompt (adds asking about creating a goal once the goal is met, one-time)")
+// defaultHashKey is the settings key holding the hash of the default last seeded for an agent.
+func defaultHashKey(agentKey string) string { return "prompt_default_hash_" + agentKey }
+
+// promptHash fingerprints a prompt body so the reseed guard can tell "still our default" from
+// "the user edited this".
+func promptHash(tmpl string) string {
+	sum := sha256.Sum256([]byte(tmpl))
+	return hex.EncodeToString(sum[:])
 }
 
-// reseedPlannerPrompt refreshes the planner prompt to the CURRENT code default — the default body
-// was compacted and refactored: restraint is downgraded to de-duplication only, "depth over
-// coverage" and "hard floor: if the goal is unmet and no intent is running you must produce one"
-// were added, and re-checking a negative conclusion gained an upper bound. Bump the flag below
-// (currently v2) on every substantive default change so existing old DBs refresh again.
-// SeedPromptIfEmpty is first-insert-only, so an old DB's existing version never receives it;
-// version management APPENDS A NEW VERSION and switches to it (ResetPromptToDefault), keeping the
-// old version in history so a customised one can be recovered. Guarded by a settings flag → runs
-// once. A fresh DB needs nothing (SeedPromptIfEmpty seeded the latest default). Exactly parallel
-// to reseedGoalsPrompt.
-func (s *Server) reseedPlannerPrompt() {
-	const flag = "planner_prompt_compact_realistic_v2"
-	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
-		return
-	}
-	defer func() { _ = s.m.pg.SetSetting(flag, "true") }() // attempt once regardless of success
-	a, err := s.m.pg.GetAgentByKey("planner")
-	if err != nil || a == nil {
-		return // a fresh DB has no agent row yet, so seedPrompts seeds the latest default directly; no migration needed
-	}
-	tmpl := agent.BuiltinPromptSeeds()["planner"]
-	if tmpl == "" {
-		return
-	}
-	// A fresh DB's seedPrompts already seeded the latest default → the current version already
-	// equals the code default, so there is no need to append a duplicate version.
-	if cur, err := s.m.pg.CurrentPrompt(a.ID); err == nil && cur == tmpl {
-		return
-	}
-	if _, err := s.m.pg.ResetPromptToDefault(a.ID, tmpl); err != nil {
-		log.Printf("[prompts] refreshing planner prompt to the new default failed: %v", err)
-		return
-	}
-	log.Printf("[prompts] appended a new default version of the planner prompt (compacted refactor + restraint downgraded to de-duplication + depth over coverage + upper bound on negative re-checks, one-time)")
-}
-
-// reseedWorkerPrompt refreshes the worker prompt to the CURRENT code default — the record_fact
-// section of the default body dropped the whole "write negative conclusions as an observation plus
-// a tentative reading" sentence and decoupled confidence (observed/inferred) from "whether every
-// technique for this intent was exhausted" (both misled the planner), and the facts array splitting
-// was tightened to the rare exception of entries that are fully independent and cannot be merged.
-// Bump the flag to v3 so existing old DBs refresh again. SeedPromptIfEmpty is first-insert-only, so
-// an old DB's existing version never receives it; version management APPENDS A NEW VERSION and
-// switches to it, keeping the old version in history so it can be recovered. Guarded by a settings
-// flag → runs once. A fresh DB needs nothing. Exactly parallel to reseedGoalsPrompt.
-func (s *Server) reseedWorkerPrompt() {
-	const flag = "worker_prompt_compact_v4"
-	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
-		return
-	}
-	defer func() { _ = s.m.pg.SetSetting(flag, "true") }() // attempt once regardless of success
-	a, err := s.m.pg.GetAgentByKey("worker")
-	if err != nil || a == nil {
-		return // a fresh DB has no agent row yet, so seedPrompts seeds the latest default directly; no migration needed
-	}
-	tmpl := agent.BuiltinPromptSeeds()["worker"]
-	if tmpl == "" {
-		return
-	}
-	// A fresh DB's seedPrompts already seeded the latest default → the current version already
-	// equals the code default, so there is no need to append a duplicate version.
-	if cur, err := s.m.pg.CurrentPrompt(a.ID); err == nil && cur == tmpl {
-		return
-	}
-	if _, err := s.m.pg.ResetPromptToDefault(a.ID, tmpl); err != nil {
-		log.Printf("[prompts] refreshing worker prompt to the new default failed: %v", err)
-		return
-	}
-	log.Printf("[prompts] appended a new default version of the worker prompt (context-lookup section narrowed to list_assets/list_findings, dropping list_facts/node_detail/asset_neighbors, one-time)")
+// refreshBuiltinPrompts applies changed built-in prompt bodies to existing DBs, whose seeded
+// prompts are first-insert-only. Bump the flag of an entry whenever the shipped default changes
+// materially; never reuse a flag for a second change.
+func (s *Server) refreshBuiltinPrompts() {
+	seeds := agent.BuiltinPromptSeeds()
+	s.reseedPrompt("goals_prompt_doctrine_v2", "goals", seeds["goals"], "constraint extraction + checkable goal formulation")
+	s.reseedPrompt("mainagent_prompt_doctrine_v2", "mainagent", seeds["mainagent"], "constraint block injection + steering contract")
+	s.reseedPrompt("planner_prompt_axes_v3", "planner", seeds["planner"], "three-axis rotation + compacted output contract")
+	s.reseedPrompt("worker_prompt_axes_v5", "worker", seeds["worker"], "three-axis method + six-gate evidence bar")
+	s.reseedPrompt("pentest_prompt_axes_v2", "pentest", seeds["pentest"], "compacted solo doctrine + axis rotation")
+	s.reseedPrompt("reporter_prompt_masking_v2", "reporter", agent.ReporterDefaultPrompt, "report masking section + CVSS/CWE/WSTG")
+	s.reseedPrompt("retester_prompt_traps_v2", "retester", agent.RetesterDefaultPrompt, "false-fix traps + benign control")
 }
 
 // reporterToolCallMessage must unconditionally require reading get_finding_traffic once before

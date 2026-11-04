@@ -135,7 +135,7 @@ func TestLangDirectiveAppendedToUserFacingRoles(t *testing.T) {
 		cases := map[string]string{
 			"worker":    workerSystem("", "", "/data", "/data"),
 			"planner":   plannerSystem("g", "/data", "/data"),
-			"mainagent": mainAgentSystem("g", "/data", "/data"),
+			"mainagent": mainAgentSystem("g", "/data", "/data", ""),
 			"chat":      chatSystem("chat", "/data", "/data"),
 			// goals is user-facing too: set_goals/set_constraints persist goal and
 			// constraint nodes shown in the UI graph/plan tab. withScope=true exercises

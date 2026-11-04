@@ -1,0 +1,5 @@
+#!/bin/sh
+# Pinned wrapper (installed as the SQL injection framework's command): keep session and output
+# files inside the current per-task working directory instead of $HOME, which is where the
+# agents are told to write.
+exec python3 /opt/pt-dump/pt-dump.py --disable-coloring --output-dir "${PWD}/pt-dump-out" "$@"

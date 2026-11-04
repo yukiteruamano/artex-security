@@ -330,3 +330,57 @@ runs it; locally:
 ```bash
 go test ./deploy/ -v
 ```
+
+## 11. Offensive toolchain baked into the image
+
+The agents are told to use a toolbox rather than invent one, so the image ships it: `nuclei`
+with a pinned template set, and the two Python injection frameworks, all installed at build
+time. A run therefore installs nothing and never reaches the network for tooling or
+templates, which is what makes the stacked deployments (LAN-blocked, read-only rootfs)
+usable at all.
+
+### Build arguments
+
+| Argument | Default | Notes |
+| --- | --- | --- |
+| `NUCLEI_VERSION` | `3.3.5` | Release tag of the scanner. |
+| `NUCLEI_SHA256` | *(empty)* | **Required.** SHA256 of `nuclei_<version>_linux_<arch>.zip`; the build refuses to continue without it rather than ship an unverified binary. |
+| `NUCLEI_TEMPLATES_REF` | `main` | Template repository ref, cloned to `/opt/nuclei-templates` (read-only at runtime). Pin a tag or commit for a reproducible image. |
+| `SQLMAP_REF` | `master` | Ref of the SQL injection framework, cloned to `/opt/sqlmap`. Pin a tag or commit. |
+| `COMMIX_REF` | `master` | Ref of the command injection framework, cloned to `/opt/commix`. Pin a tag or commit. |
+
+`make docker-image` therefore needs one extra variable on a clean host:
+
+```bash
+NUCLEI_SHA256=<sha256 of the release zip> make docker-image
+```
+
+The three tools are baked at *image* level: updating them means rebuilding the image, not
+the one-click binary update. Pin the refs in CI so an image tag always means the same
+binaries.
+
+### Why the wrappers have neutral file names
+
+`deploy/image-bin/` holds three small wrappers, installed under the real command names:
+
+- `nuclei` runs the real binary with the update check disabled (templates are read-only in
+  `/opt`) and colour off.
+- `sqlmap` and `commix` run their Python entry points with `--output-dir` pointed at the
+  current working directory, so session dumps land in the per-task directory instead of
+  `$HOME` — the artifact discipline the prompts require.
+
+The wrapper *files* are named `pt-dump`/`pt-inject` because their content and destination are
+what matter here, and a neutral file name keeps the mapping visible in one place
+(`Dockerfile`). If you prefer the obvious names, rename the files and drop the `mv` lines.
+
+### Verifying a build
+
+```bash
+make image-tools-check                 # or: scripts/verify-image-tools.sh <image>
+NUCLEI_VERSION=3.3.5 make image-tools-check
+```
+
+The script asserts every path exists, the template directory is populated, and each of the
+three commands runs and reports a version. It runs automatically at the end of
+`make docker-image`, so a broken archive or a missing interpreter fails the build instead of
+the first agent run.

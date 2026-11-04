@@ -200,6 +200,12 @@ func seedPrompts(pg *db.DB) {
 		}
 		if err := pg.SeedPromptIfEmpty(a.ID, tmpl); err != nil {
 			log.Printf("[prompts] seed %s failed: %v", key, err)
+			continue
+		}
+		// Record the fingerprint of the default that is now current, so the reseed guard can
+		// later tell "still the shipped default" from "the user edited this prompt".
+		if cur, err := pg.CurrentPrompt(a.ID); err == nil && cur == tmpl {
+			_ = pg.SetSetting(defaultHashKey(key), promptHash(tmpl))
 		}
 	}
 }

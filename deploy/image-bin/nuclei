@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pinned wrapper: the template set is baked into the image and the update check is off, so a
+# run never reaches the network for templates. Flags given by the agent are passed through.
+exec /usr/local/bin/nuclei.real -duc -no-color "$@"

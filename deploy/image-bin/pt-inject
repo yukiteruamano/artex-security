@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pinned wrapper (installed as the command injection framework's command): output stays in the
+# current per-task working directory, never $HOME.
+exec python3 /opt/pt-inject/pt-inject.py --output-dir "${PWD}/pt-inject-out" "$@"
