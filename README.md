@@ -6,7 +6,7 @@
 
 The UI and generated output default to English, and **can be switched between English and Spanish in Settings (System → Settings → Display language).** Changing the language also changes the language of agent-generated reports, summaries and chat replies.
 
-[![ci](https://github.com/yukiteruamano/artex-global/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-global/actions/workflows/ci.yml) [![detections](https://github.com/yukiteruamano/artex-global/actions/workflows/detections.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-global/actions/workflows/detections.yml) [![web](https://github.com/yukiteruamano/artex-global/actions/workflows/web.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-global/actions/workflows/web.yml) [![license: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![ci](https://github.com/yukiteruamano/artex-security/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-security/actions/workflows/ci.yml) [![detections](https://github.com/yukiteruamano/artex-security/actions/workflows/detections.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-security/actions/workflows/detections.yml) [![web](https://github.com/yukiteruamano/artex-security/actions/workflows/web.yml/badge.svg?branch=main)](https://github.com/yukiteruamano/artex-security/actions/workflows/web.yml) [![license: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
 </div>
 
@@ -93,7 +93,7 @@ Upstream (Chinese UI) captures preserved for comparison are described in [`scree
 > **Image:** the `artex` service in `docker-compose.yml` pulls `ghcr.io/yukiteruamano/artex-global`, the global-edition image this repository publishes to GitHub Container Registry on every release tag (`v*`). The default tag is `latest` (the most recent release); set `ARTEX_TAG` in `.env` to pin a specific release. Upstream's original image `autumn27/artex` has been taken down from Docker Hub and is no longer used.
 
 ```bash
-git clone https://github.com/yukiteruamano/artex-global.git
+git clone https://github.com/yukiteruamano/artex-security.git
 cd artex-global
 cp .env.example .env          # set POSTGRES_PASSWORD; ANTHROPIC_API_KEY is optional
 docker compose up -d          # brings up the artex image + postgres together

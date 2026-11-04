@@ -80,7 +80,7 @@ still works and only SYN/OS-detection scans are lost — see §9.
 ## 3. Startup
 
 ```bash
-git clone https://github.com/yukiteruamano/artex-global.git
+git clone https://github.com/yukiteruamano/artex-security.git
 cd artex-global
 cp .env.example .env        # set POSTGRES_PASSWORD; an LLM key is optional here
 mkdir -p data skills        # must exist before the first start (see §5)

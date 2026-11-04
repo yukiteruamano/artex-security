@@ -1,5 +1,5 @@
 # ARTEX network detection - Suricata rules
-# Repo:  https://github.com/yukiteruamano/artex-global
+# Repo:  https://github.com/yukiteruamano/artex-security
 # Guide: ../../docs/defense.md
 # Index & how-to-test: detections/suricata/README.md
 #
