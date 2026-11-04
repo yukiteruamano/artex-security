@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -303,7 +304,11 @@ func ensureRunDir(base string, taskID, intentID int64) string {
 	if intentID > 0 {
 		dir = filepath.Join(dir, "i"+strconv.FormatInt(intentID, 10))
 	}
-	_ = os.MkdirAll(dir, 0o755)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		// Never silent: an unwritable data volume turns every command in this run into a spawn
+		// failure whose message names bash instead of the real cause.
+		log.Printf("[agent] cannot create the run directory %s: %v (uid %d cannot write the data volume; shell calls in this run will fail)", dir, err, os.Getuid())
+	}
 	return dir
 }
 

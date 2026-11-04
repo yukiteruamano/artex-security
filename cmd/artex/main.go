@@ -125,6 +125,15 @@ func run() int {
 	}
 	defer mgr.Close()
 
+	// The agents run every command inside <data>/tasks/<id>/i<intent>/. Creating the roots here
+	// means an unwritable data volume (a root-owned bind mount is the usual cause) is reported
+	// once, with the path, the uid and the fix - instead of surfacing per tool call as a spawn
+	// failure that names bash and hides the real reason. Not fatal: the UI is how it gets fixed.
+	if err := server.EnsureWorkDirs(*dataDir); err != nil {
+		log.Printf("[workspace] ERROR %v", err)
+		log.Printf("[workspace] ERROR agents will not be able to run any command until this is fixed (the UI still works)")
+	}
+
 	// Surviving this long means a freshly swapped-in build actually works, so drop
 	// the upgrade marker and stop counting attempts. Until it fires, every boot
 	// increments the count and a build that keeps dying gets rolled back.

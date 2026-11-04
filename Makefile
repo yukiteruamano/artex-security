@@ -225,8 +225,18 @@ password: ## Reset the admin password (local psql or the postgres container)
 ##@ Docker
 
 .PHONY: docker-prep
-docker-prep: ## Create ./data and ./skills owned by the invoking user
+docker-prep: ## Create ./data and ./skills with the ownership the container runs as
 	mkdir -p data skills
+	@uid=$${ARTEX_UID:-10001}; gid=$${ARTEX_GID:-10001}; \
+	if [ "$$(id -u)" = 0 ]; then \
+		chown -R "$$uid:$$gid" data skills; \
+		echo "data/ and skills/ are owned by $$uid:$$gid (the container user)"; \
+	elif [ ! -w data ] && [ "$$(id -u)" != "$$uid" ]; then \
+		echo "data/ is not writable by the container user $$uid, so no agent can run a command." >&2; \
+		echo "fix it once as root:  chown -R $$uid:$$gid data skills" >&2; \
+		echo "or run the stack as yourself:  ARTEX_UID=$$(id -u) ARTEX_GID=$$(id -g) make docker-up" >&2; \
+		exit 1; \
+	fi
 	@echo "run the stack with: ARTEX_UID=$$(id -u) ARTEX_GID=$$(id -g) make docker-up"
 
 .PHONY: image-tools-check
@@ -251,12 +261,12 @@ docker-build: dist-binaries ## Build the image through compose
 	$(COMPOSE) build
 
 .PHONY: docker-up
-docker-up: ## Start the stack (published image, loopback ports)
+docker-up: docker-prep ## Start the stack (published image, loopback ports)
 	$(COMPOSE) up -d
 	@echo "UI: http://127.0.0.1:8787 (first visit: /setup)"
 
 .PHONY: docker-up-local
-docker-up-local: docker-build ## Build from source and start the stack
+docker-up-local: docker-prep docker-build ## Build from source and start the stack
 	$(COMPOSE) up -d
 
 .PHONY: docker-up-volumes

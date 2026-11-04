@@ -39,8 +39,11 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 # Operational tools: ripgrep / curl / vim plus the bundle reconnaissance reaches for most
 # often (add or drop as needed). xz-utils is for the Node tarball below.
+# bash is not decoration: the agent's Bash tool spawns /usr/bin/bash, and this base image does
+# not ship it - without it every worker command fails with "fork/exec /usr/bin/bash: no such
+# file or directory" while the binaries it wanted to run are perfectly installed.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates ripgrep curl wget vim git jq unzip xz-utils \
+      bash ca-certificates ripgrep curl wget vim git jq unzip xz-utils \
       dnsutils iputils-ping netcat-openbsd inetutils-telnet whois nmap \
     && rm -rf /var/lib/apt/lists/*
 # Node from the official release tarball, at a pinned version with pinned SHA256 sums,

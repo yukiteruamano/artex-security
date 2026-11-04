@@ -384,3 +384,39 @@ The script asserts every path exists, the template directory is populated, and e
 three commands runs and reports a version. It runs automatically at the end of
 `make docker-image`, so a broken archive or a missing interpreter fails the build instead of
 the first agent run.
+
+## 12. The agents cannot run any command
+
+Two failures look like "the agent is broken" and are neither: the image or the mounted data
+directory is not usable. Both are now diagnosed at start-up, but here is what to check.
+
+**`fork/exec /usr/bin/bash: no such file or directory`** — the agent's Bash tool spawns
+`/usr/bin/bash` and the `python:slim` base image does not ship it. The image installs `bash`
+for exactly this reason; an image built before that, or a local Dockerfile that trimmed the
+package list, brings the failure back. The same message appears for every tool call, which is
+what makes it look like a broken agent rather than a missing package.
+
+**`mkdir: cannot create directory '/app/data/tasks': Permission denied`** — `./data` is
+bind-mounted over `/app/data` and is owned by someone the container user cannot write as
+(root, after a `docker compose up` that created it). The container runs as
+`${ARTEX_UID:-10001}`, so the mounted directory has to belong to that uid:
+
+```bash
+make docker-prep                    # chowns data/ and skills/ when run as root; otherwise diagnoses
+ARTEX_UID=$(id -u) ARTEX_GID=$(id -g) make docker-up   # or run the container as yourself
+make docker-up-volumes              # or use named volumes, which inherit the image's ownership
+```
+
+At start-up the daemon creates `<data>/tasks` and `<data>/sessions` once and, when it cannot,
+logs the path, the uid and the `chown` command in a single `[workspace] ERROR` line. The UI
+keeps working on purpose: it is how the state gets inspected and how the operator finds out.
+
+Quick health check from outside:
+
+```bash
+docker compose exec artex sh -c 'id; bash --version | head -1; ls -ld /app/data /app/data/tasks'
+```
+
+A working deployment prints the unprivileged uid, a bash version, and both directories owned
+by that uid. Workers then run with `tasks/<task>/i<intent>/` as their working directory, which
+is what the prompts' artifact discipline assumes.
