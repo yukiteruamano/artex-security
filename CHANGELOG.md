@@ -37,11 +37,17 @@ The upstream ARTEX project's per-version release history (0.3.x and earlier) and
 
 - **pnpm 12.17.0.** `packageManager` in `web/package.json` and the `corepack prepare` pin in the `Dockerfile` move from 12.16.1 to 12.17.0, so CI (which reads `packageManager`), the image and local development all resolve the same release. The lockfile was regenerated with 12.17.0 and `pnpm install --frozen-lockfile`, the type check, the unit tests, the i18n gate, the production audit and the static export were re-run against it.
 
+### Repository rename (artex-global -> artex-security)
+
+- **Every name moved to `artex-security`.** The GitHub repository was renamed, so the Go module path (`github.com/yukiteruamano/artex-security`, 253 import references plus `go.mod`), the container image namespace (`ghcr.io/yukiteruamano/artex-security`), the one-click updater's release source, every repository URL, the clone directory in the README, the issue and pull-request templates, the MISP event name and the Sigma rule author now use it. 296 occurrences across 186 files. The 0.3.15 entry below keeps the old name: it records what that release did.
+  - Consequence for operators: the published image is now pulled from `ghcr.io/yukiteruamano/artex-security`. An existing `.env` with `ARTEX_TAG` keeps working, but a pinned `image:` line in your own compose file has to change.
+- **`.gitignore` files translated and cleaned.** The two ignore files still carried Chinese and Korean comments, a Windows-build ignore rule and a dead `zh.sources.json` entry; they are English now and only list what this repository actually produces.
+
 ### Module path
 
-- **The Go module is `github.com/yukiteruamano/artex-global`.** `go.mod` and all 249 import references across 155 files move off `github.com/Autumn-27/artex`, which belongs to a repository that no longer exists. References to the upstream project (`Autumn-27/ARTEX`) and to its SDK (`Autumn-27/norma`) are untouched, as is the historical note in the 0.3.15 entry that recorded the module being left alone at that release.
+- **The Go module is `github.com/yukiteruamano/artex-security`.** `go.mod` and all 249 import references across 155 files move off `github.com/Autumn-27/artex`, which belongs to a repository that no longer exists. References to the upstream project (`Autumn-27/ARTEX`) and to its SDK (`Autumn-27/norma`) are untouched, as is the historical note in the 0.3.15 entry that recorded the module being left alone at that release.
 
-  The module path matches the repository name on purpose: `go get` and `go install` resolve a `github.com/<owner>/<repo>` module path by repository name, so `go install github.com/yukiteruamano/artex-global/cmd/artex@latest` works against the repository as it is named today.
+  The module path matches the repository name on purpose: `go get` and `go install` resolve a `github.com/<owner>/<repo>` module path by repository name, so `go install github.com/yukiteruamano/artex-security/cmd/artex@latest` works against the repository as it is named today.
 
 ### Developer tooling
 
@@ -55,7 +61,7 @@ The upstream ARTEX project's per-version release history (0.3.x and earlier) and
 
 ### Fixed
 
-- **The one-click updater now checks this repository.** Its release source was still `Autumn-27/artex`, a repository that does not exist, so the update check would never have found a release. It is hard-coded to `yukiteruamano/artex-global` on purpose (a configurable update source would be a remote-code-execution channel).
+- **The one-click updater now checks this repository.** Its release source was still `Autumn-27/artex`, a repository that does not exist, so the update check would never have found a release. It is hard-coded to `yukiteruamano/artex-security` on purpose (a configurable update source would be a remote-code-execution channel).
 - **`CREATE DATABASE` quotes the database name instead of concatenating it.** The name comes from the DSN; one containing a double quote would have closed the identifier and run arbitrary SQL on the maintenance connection. PostgreSQL forbids a parameter there, so the name is now sanitised with `pgx.Identifier` and a new test pins the embedded-quote and injection cases.
 - Distinguish task report loading failures from empty reports and offer a retry button. Late responses from a previous task cannot replace the current task report.
 
