@@ -19,7 +19,7 @@ func TestJudgePromptPolicyContract(t *testing.T) {
 	}
 	for _, marker := range []string{
 		"120 characters",
-		`"decision":"allow|ask"`,
+		"decision is one of allow, ask",
 		"Never output deny",
 	} {
 		if !strings.Contains(effective, marker) {
