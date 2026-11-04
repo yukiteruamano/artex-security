@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Module | `github.com/yukiteruamano/artex-global` (`go.mod:1`), matching the GitHub repository `yukiteruamano/artex-global` |
-| Branch | `chore/i18n-en-es-hardening` |
+| Branch | `master` |
 | Commit analysed | `fdfb7a17b7da5e2de716c0e98475ec77a41c64c6` (`fdfb7a1`, 2026-10-14) |
 | Go toolchain | `go 1.26.10` (`go.mod:3`) |
 | Web stack | Next.js 16 App Router, React 19, TypeScript, Tailwind 4, zustand (`web/package.json`) |
