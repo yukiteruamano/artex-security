@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SigmaHQ/sigma-specification/main/json-schema/sigma-correlation-rules-schema.json
 # Correlation rule: a Sigma v2 correlation rule has no `logsource`/`detection` block by
 # design — the `correlation:` section below references the base rule by id. A schema
 # validator that only knows detection rules reports "missing logsource/detection" for this
