@@ -86,3 +86,7 @@ secrets.env
 /.pnpm-store/
 # pi agent session scratch (task logs, per-session context)
 /.pi/
+
+# local prompt drafts: copies of the built-in prompts with their source locations, kept
+# outside version control so experimenting with them never shows up as a diff
+/dev_prompts/
