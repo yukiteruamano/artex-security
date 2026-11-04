@@ -563,6 +563,40 @@ export function BroadcastTab({ taskId }: { taskId: string }) {
     else groups.push({ day, rows: [node] });
   }
 
+  let listBody: React.ReactNode;
+  if (!loaded) {
+    listBody = (
+      <div className="flex flex-col gap-3 py-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  } else if (items.length === 0) {
+    listBody = (
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        {query || kinds.length > 0 ? t("emptyFiltered") : t("emptyNoNodes")}
+      </p>
+    );
+  } else {
+    listBody = groups.map((group) => (
+      <div key={group.day}>
+        <div className="py-2 pl-[6.25rem] text-xs font-medium text-muted-foreground">{group.day}</div>
+        {group.rows.map((node) => (
+          <BroadcastRow
+            key={node.id}
+            node={node}
+            edges={edges}
+            refs={nodeIndex}
+            assets={assets}
+            now={now}
+            fresh={freshIDs.has(node.id)}
+          />
+        ))}
+      </div>
+    ));
+  }
+
   return (
     <Card className="overflow-hidden py-0">
       {/* Toolbar */}
@@ -649,36 +683,7 @@ export function BroadcastTab({ taskId }: { taskId: string }) {
         </button>
       )}
 
-      <CardContent className="px-4 py-0">
-        {!loaded ? (
-          <div className="flex flex-col gap-3 py-4">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            {query || kinds.length > 0 ? t("emptyFiltered") : t("emptyNoNodes")}
-          </p>
-        ) : (
-          groups.map((group) => (
-            <div key={group.day}>
-              <div className="py-2 pl-[6.25rem] text-xs font-medium text-muted-foreground">{group.day}</div>
-              {group.rows.map((node) => (
-                <BroadcastRow
-                  key={node.id}
-                  node={node}
-                  edges={edges}
-                  refs={nodeIndex}
-                  assets={assets}
-                  now={now}
-                  fresh={freshIDs.has(node.id)}
-                />
-              ))}
-            </div>
-          ))
-        )}
-      </CardContent>
+      <CardContent className="px-4 py-0">{listBody}</CardContent>
 
       <CardFooter className="flex flex-wrap items-center gap-2 border-t px-4 py-2.5 text-xs text-muted-foreground">
         <Select

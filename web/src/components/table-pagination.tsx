@@ -18,16 +18,17 @@ interface TablePaginationProps {
   pageSizeOptions?: number[];
 }
 
-// pageWindows returns the sequence of page numbers / ellipsis to render.
-function pageWindows(page: number, total: number): (number | "...")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const out: (number | "...")[] = [1];
-  if (page > 3) out.push("...");
+// pageWindows returns the sequence of page numbers / ellipsis to render, each with a
+// render key that is stable while paging (the two gaps are keyed by position, not index).
+function pageWindows(page: number, total: number): { key: string; page: number | "..." }[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => ({ key: String(i + 1), page: i + 1 }));
+  const out: { key: string; page: number | "..." }[] = [{ key: "1", page: 1 }];
+  if (page > 3) out.push({ key: "gap-start", page: "..." });
   const lo = Math.max(2, page - 1);
   const hi = Math.min(total - 1, page + 1);
-  for (let i = lo; i <= hi; i++) out.push(i);
-  if (page < total - 2) out.push("...");
-  out.push(total);
+  for (let i = lo; i <= hi; i++) out.push({ key: String(i), page: i });
+  if (page < total - 2) out.push({ key: "gap-end", page: "..." });
+  out.push({ key: String(total), page: total });
   return out;
 }
 
@@ -88,13 +89,13 @@ export function TablePagination({
                 <ChevronLeftIcon className="size-4" />
               </Button>
             </PaginationItem>
-            {pageWindows(safePage, totalPages).map((p, i) =>
+            {pageWindows(safePage, totalPages).map(({ key, page: p }) =>
               p === "..." ? (
-                <PaginationItem key={`el-${i}`}>
+                <PaginationItem key={key}>
                   <PaginationEllipsis />
                 </PaginationItem>
               ) : (
-                <PaginationItem key={p}>
+                <PaginationItem key={key}>
                   <Button
                     variant={p === safePage ? "outline" : "ghost"}
                     size="icon-sm"

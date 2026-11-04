@@ -1699,7 +1699,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
             );
           return issue.rule;
         }
-        const item = candidate as { kind?: unknown; value?: unknown };
+        const item = candidate as { kind?: unknown; value?: unknown } | null;
         const value = String(item?.value ?? "").trim();
         const rule =
           item?.kind && isCompanyScopeKind(item.kind)
@@ -1947,6 +1947,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
         high: items.filter((finding) => finding.severity === "high").length,
         medium: items.filter((finding) => finding.severity === "medium").length,
         low: items.filter((finding) => finding.severity === "low").length,
+        // biome-ignore lint/complexity/useMathMinMax: ts is an ISO timestamp string; Math.max would coerce it to NaN
         last_found_at: items.reduce((latest, finding) => (finding.ts > latest ? finding.ts : latest), ""),
         max_severity: Math.max(...items.map((finding) => severityOrder[finding.severity])),
       };
@@ -2264,7 +2265,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // ── traffic / audit / settings ──
   if (path === "/audit") return D.audit;
   if (path === "/traffic" && m === "DELETE") return { deleted: 0 };
-  if (path === "/traffic/hosts" && m === "DELETE") return { deleted: (b.hosts as unknown[])?.length ?? 0 };
+  if (path === "/traffic/hosts" && m === "DELETE") return { deleted: (b.hosts as unknown[] | undefined)?.length ?? 0 };
   if (path === "/traffic/hosts") return { hosts: D.trafficHosts };
   if (path === "/traffic") return D.traffic;
   if (path === "/traffic/exchange") return D.trafficDetail;
@@ -2284,7 +2285,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/commands/stats" && m === "GET") {
     const tally = new Map<string, { tool: string; total: number; errors: number }>();
     for (const c of D.commandRecords) {
-      const tool = c.tool || "-";
+      const tool = c.tool;
       const s = tally.get(tool) ?? { tool, total: 0, errors: 0 };
       s.total++;
       if (c.is_error) s.errors++;
@@ -2493,8 +2494,12 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     if (decisionSource && !["model", "rule", "unknown"].includes(decisionSource))
       throw new Error("Invalid decision source");
     const filtered = mockInterceptHistory.filter((row) => {
-      const source =
-        row.decision_source || (row.rule_id ? "rule" : row.reason?.startsWith("[模型]") ? "model" : "unknown");
+      let source = row.decision_source;
+      if (!source) {
+        if (row.rule_id) source = "rule";
+        else if (row.reason?.startsWith("[模型]")) source = "model";
+        else source = "unknown";
+      }
       return (
         (seg[1] !== "task" || row.task_id === decodeURIComponent(seg[2])) &&
         (!status || row.status === status) &&

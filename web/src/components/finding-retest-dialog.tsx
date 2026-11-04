@@ -35,7 +35,7 @@ export function FindingRetestDialog({ findingId, findingName, onClose, onStarted
   const notesId = React.useId();
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
-  const submitLock = React.useRef(false);
+  const submitLock = React.useRef<boolean>(false);
 
   async function start() {
     if (submitLock.current) return;

@@ -38,19 +38,11 @@ const KIND_OPTIONS: { value: AssetInterceptKind; group: KindGroup; placeholder: 
 const KIND_GROUPS: KindGroup[] = ["exact", "fuzzy", "cidr"];
 
 function KindBadge({ kind, label }: { kind: AssetInterceptKind; label: string }) {
-  const fuzzy = kind.startsWith("fuzzy_");
-  const cidr = kind === "cidr";
+  let tone = "border-emerald-400 text-emerald-600";
+  if (kind === "cidr") tone = "border-sky-400 text-sky-600";
+  else if (kind.startsWith("fuzzy_")) tone = "border-amber-400 text-amber-600";
   return (
-    <Badge
-      variant="outline"
-      className={
-        cidr
-          ? "border-sky-400 text-sky-600"
-          : fuzzy
-            ? "border-amber-400 text-amber-600"
-            : "border-emerald-400 text-emerald-600"
-      }
-    >
+    <Badge variant="outline" className={tone}>
       {label}
     </Badge>
   );
@@ -176,6 +168,9 @@ export default function AssetInterceptPage() {
   }
 
   const placeholder = KIND_OPTIONS.find((o) => o.value === form.kind)?.placeholder ?? "";
+  let kindHint = t("editor.hintExact");
+  if (form.kind === "cidr") kindHint = t("editor.hintCidr");
+  else if (form.kind.startsWith("fuzzy_")) kindHint = t("editor.hintFuzzy");
 
   return (
     <div className="flex flex-1 flex-col gap-5 p-6">
@@ -198,72 +193,75 @@ export default function AssetInterceptPage() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? (
-            <p className="p-6 text-sm text-muted-foreground">{t("loading")}</p>
-          ) : rules.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-              <BanIcon className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">{t("empty")}</p>
-              <Button size="sm" variant="outline" onClick={openNew}>
-                <PlusIcon className="h-4 w-4" />
-                {t("addFirst")}
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[130px]">{t("colType")}</TableHead>
-                  <TableHead>{t("colPattern")}</TableHead>
-                  <TableHead>{t("colNote")}</TableHead>
-                  <TableHead className="w-[64px] text-center">{t("colEnabled")}</TableHead>
-                  <TableHead className="w-[80px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rules.map((rule) => (
-                  <TableRow key={rule.id} className={!rule.enabled ? "opacity-40" : ""}>
-                    <TableCell>
-                      <KindBadge kind={rule.kind} label={tr(`kind.${rule.kind}`)} />
-                    </TableCell>
-                    <TableCell className="max-w-[280px]">
-                      <code className="block truncate rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                        {rule.pattern}
-                      </code>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        {rule.builtin && (
-                          <Badge variant="secondary" className="shrink-0 px-1 py-0 text-[10px]">
-                            {t("builtin")}
-                          </Badge>
-                        )}
-                        <span className="truncate">{rule.note}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch checked={rule.enabled} onCheckedChange={() => handleToggle(rule)} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-0.5">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(rule)}>
-                          <PencilIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(rule)}
-                        >
-                          <Trash2Icon className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {(() => {
+            if (loading) return <p className="p-6 text-sm text-muted-foreground">{t("loading")}</p>;
+            if (rules.length === 0)
+              return (
+                <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+                  <BanIcon className="h-8 w-8 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">{t("empty")}</p>
+                  <Button size="sm" variant="outline" onClick={openNew}>
+                    <PlusIcon className="h-4 w-4" />
+                    {t("addFirst")}
+                  </Button>
+                </div>
+              );
+            return (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[130px]">{t("colType")}</TableHead>
+                    <TableHead>{t("colPattern")}</TableHead>
+                    <TableHead>{t("colNote")}</TableHead>
+                    <TableHead className="w-[64px] text-center">{t("colEnabled")}</TableHead>
+                    <TableHead className="w-[80px]" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                </TableHeader>
+                <TableBody>
+                  {rules.map((rule) => (
+                    <TableRow key={rule.id} className={!rule.enabled ? "opacity-40" : ""}>
+                      <TableCell>
+                        <KindBadge kind={rule.kind} label={tr(`kind.${rule.kind}`)} />
+                      </TableCell>
+                      <TableCell className="max-w-[280px]">
+                        <code className="block truncate rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                          {rule.pattern}
+                        </code>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          {rule.builtin && (
+                            <Badge variant="secondary" className="shrink-0 px-1 py-0 text-[10px]">
+                              {t("builtin")}
+                            </Badge>
+                          )}
+                          <span className="truncate">{rule.note}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch checked={rule.enabled} onCheckedChange={() => handleToggle(rule)} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(rule)}>
+                            <PencilIcon className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(rule)}
+                          >
+                            <Trash2Icon className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            );
+          })()}
         </CardContent>
       </Card>
 
@@ -298,16 +296,7 @@ export default function AssetInterceptPage() {
               </Select>
             </Field>
 
-            <Field
-              label={t("editor.matchContent")}
-              hint={
-                form.kind === "cidr"
-                  ? t("editor.hintCidr")
-                  : form.kind.startsWith("fuzzy_")
-                    ? t("editor.hintFuzzy")
-                    : t("editor.hintExact")
-              }
-            >
+            <Field label={t("editor.matchContent")} hint={kindHint}>
               <Input
                 placeholder={placeholder}
                 value={form.pattern}

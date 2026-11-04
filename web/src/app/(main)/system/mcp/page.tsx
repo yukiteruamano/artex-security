@@ -119,7 +119,7 @@ export default function MCPPage() {
       name: s.name,
       transport: s.transport,
       command: s.command ?? "",
-      args: (s.args ?? []).join(" "),
+      args: s.args.join(" "),
       url: s.url ?? "",
       env: envToText(s.env),
       insecure: s.insecure ?? false,
@@ -326,6 +326,23 @@ export default function MCPPage() {
   }
 
   function renderTools() {
+    let toolsBody: React.ReactNode;
+    if (toolsLoading) {
+      toolsBody = <p className="text-muted-foreground text-sm">{t("loading")}</p>;
+    } else if (tools.length === 0) {
+      toolsBody = <p className="text-muted-foreground text-sm">{t("toolsEmpty")}</p>;
+    } else {
+      toolsBody = (
+        <div className="flex flex-col divide-y">
+          {tools.map((t) => (
+            <div key={t.name} className="py-2.5">
+              <code className="font-mono text-sm">{t.name}</code>
+              {t.description && <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">{t.description}</p>}
+            </div>
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col gap-3 py-4">
         <div className="flex items-center justify-between">
@@ -334,22 +351,7 @@ export default function MCPPage() {
             <RefreshCwIcon className={refreshing ? "animate-spin" : ""} /> {t("refresh")}
           </Button>
         </div>
-        {toolsLoading ? (
-          <p className="text-muted-foreground text-sm">{t("loading")}</p>
-        ) : tools.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t("toolsEmpty")}</p>
-        ) : (
-          <div className="flex flex-col divide-y">
-            {tools.map((t) => (
-              <div key={t.name} className="py-2.5">
-                <code className="font-mono text-sm">{t.name}</code>
-                {t.description && (
-                  <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">{t.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        {toolsBody}
       </div>
     );
   }

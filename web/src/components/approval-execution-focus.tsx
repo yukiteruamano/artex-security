@@ -100,10 +100,8 @@ export function useApprovalHistory(
       cancelled = true;
     };
   }, [source, loaded, loadPage, mergePage, t]);
-  return {
-    ready: !!source && result?.source === source && !result.error,
-    error: result?.source === source ? result?.error : undefined,
-  };
+  if (!source || !result || result.source !== source) return { ready: false, error: undefined };
+  return { ready: !result.error, error: result.error };
 }
 
 export function ApprovalExecutionFocus({
@@ -117,18 +115,20 @@ export function ApprovalExecutionFocus({
   const { state } = focus;
   if (!state) return null;
   const error = state.error || history.error;
+  let statusLabel: string;
+  if (error) {
+    statusLabel = t("locateFail", { error });
+  } else if (history.ready) {
+    statusLabel = t("expanded", { id: state.id });
+  } else {
+    statusLabel = t("loading", { id: state.id });
+  }
   return (
     <div
       role="status"
       className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-4 py-2 text-xs"
     >
-      <span className={error ? "text-destructive" : "text-muted-foreground"}>
-        {error
-          ? t("locateFail", { error })
-          : history.ready
-            ? t("expanded", { id: state.id })
-            : t("loading", { id: state.id })}
-      </span>
+      <span className={error ? "text-destructive" : "text-muted-foreground"}>{statusLabel}</span>
       <div className="flex gap-2">
         {error ? (
           <Button size="sm" variant="outline" onClick={focus.retry}>

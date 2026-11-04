@@ -20,11 +20,13 @@ export const auth = {
   setToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
     // Write the cookie synchronously so Next.js middleware can read it server-side
+    // biome-ignore lint/suspicious/noDocumentCookie: the token cookie is set client-side; no server round trip exists in the static export
     document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
   },
 
   clearToken(): void {
     localStorage.removeItem(TOKEN_KEY);
+    // biome-ignore lint/suspicious/noDocumentCookie: the token cookie is set client-side; no server round trip exists in the static export
     document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
   },
 

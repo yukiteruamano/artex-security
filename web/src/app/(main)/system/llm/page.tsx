@@ -869,7 +869,6 @@ export default function LLMPage() {
             {profiles.map((p) => {
               const h = healthOf(p, health.get(p.id));
               return (
-                // biome-ignore lint/a11y/useSemanticElements: the card contains its own action buttons, so a native <button> would nest buttons (invalid HTML)
                 <Card
                   key={p.id}
                   role="button"

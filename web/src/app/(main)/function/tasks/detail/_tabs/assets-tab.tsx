@@ -303,7 +303,7 @@ function AddTaskAssetsSheet({
       onAttached();
       onOpenChange(false);
     } catch (reason) {
-      toast.error(t("addSheet.error", { message: String((reason as Error)?.message ?? reason) }));
+      toast.error(t("addSheet.error", { message: reason instanceof Error ? reason.message : String(reason) }));
     } finally {
       setSaving(false);
     }
@@ -405,7 +405,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         setDslError("");
       } catch (reason) {
         if (!active || assetsRequestRef.current !== request) return;
-        const message = String((reason as Error)?.message ?? reason);
+        const message = reason instanceof Error ? reason.message : String(reason);
         if (dsl) {
           setDslError(message);
           setRows([]);
@@ -449,7 +449,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
       setRemoveTarget(null);
       refresh();
     } catch (reason) {
-      toast.error(t("remove.error", { message: String((reason as Error)?.message ?? reason) }));
+      toast.error(t("remove.error", { message: reason instanceof Error ? reason.message : String(reason) }));
     } finally {
       setRemoving(false);
     }
@@ -673,7 +673,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
                         const item = authItem as Record<string, string>;
                         return (
                           <span
-                            key={`${asset.id}-${item.type ?? ""}-${item.username ?? ""}-${JSON.stringify(item)}`}
+                            key={`${asset.id}-${item.type}-${item.username}-${JSON.stringify(item)}`}
                             className="inline-flex items-center gap-1 text-[11px]"
                           >
                             <KeyRoundIcon className="size-3 text-muted-foreground" />

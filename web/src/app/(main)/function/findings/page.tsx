@@ -354,8 +354,8 @@ export default function FindingsPage() {
       const result = await api.findingAssetTree({ severity, status, vulnclass, task, query, sort });
       if (request !== assetTreeRequest.current || activeFilterFingerprint.current !== requestFilter) return;
       setAssetTree({
-        nodes: result.nodes ?? [],
-        findingTotal: result.finding_total ?? 0,
+        nodes: result.nodes,
+        findingTotal: result.finding_total,
         truncated: Boolean(result.truncated),
         droppedKinds: result.dropped_kinds ?? [],
         loaded: true,
@@ -592,11 +592,7 @@ export default function FindingsPage() {
   React.useEffect(() => {
     if (!statsLoaded) return;
     if (vulnclass !== "all" && !stats.vulnclasses.includes(vulnclass)) setVulnclass("all");
-    if (
-      task !== "all" &&
-      task !== UNASSIGNED_TASK &&
-      !(stats.tasks ?? []).some((option) => String(option.id) === task)
-    ) {
+    if (task !== "all" && task !== UNASSIGNED_TASK && !stats.tasks.some((option) => String(option.id) === task)) {
       setTask("all");
     }
   }, [stats, statsLoaded, task, vulnclass]);
@@ -921,7 +917,7 @@ export default function FindingsPage() {
             <SelectContent>
               <SelectItem value="all">{t("task.all")}</SelectItem>
               <SelectItem value={UNASSIGNED_TASK}>{t("task.unassigned")}</SelectItem>
-              {(stats.tasks ?? []).map((taskOpt) => {
+              {stats.tasks.map((taskOpt) => {
                 const id = String(taskOpt.id);
                 const label = taskOpt.name || taskOpt.description || t("task.deletedShort", { id });
                 return (
@@ -1034,6 +1030,10 @@ export default function FindingsPage() {
                 loaded: false,
                 loading: false,
               };
+              let taskTitle: string;
+              if (group.task_id === null) taskTitle = t("task.unassigned");
+              else if (group.task_name) taskTitle = t("group.withName", { name: group.task_name, id: group.task_id });
+              else taskTitle = t("group.taskOnly", { id: group.task_id });
               return (
                 <Card key={key} className="gap-0 py-0">
                   <CardHeader className="px-4 py-3">
@@ -1051,13 +1051,7 @@ export default function FindingsPage() {
                           )}
                         />
                         <div className="flex min-w-0 flex-col gap-1">
-                          <CardTitle className="truncate text-sm">
-                            {group.task_id === null
-                              ? t("task.unassigned")
-                              : group.task_name
-                                ? t("group.withName", { name: group.task_name, id: group.task_id })
-                                : t("group.taskOnly", { id: group.task_id })}
-                          </CardTitle>
+                          <CardTitle className="truncate text-sm">{taskTitle}</CardTitle>
                           <CardDescription className="truncate" title={group.task_description}>
                             {group.task_description || t("group.sourceUnavailable")}
                           </CardDescription>

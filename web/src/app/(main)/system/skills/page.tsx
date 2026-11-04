@@ -65,19 +65,21 @@ function buildTree(entries: string[]): TreeNode[] {
   const root: TreeNode[] = [];
   const dirMap = new Map<string, TreeNode>();
 
-  function ensureDir(dirPath: string, parentNodes: TreeNode[]): TreeNode[] {
-    if (dirMap.has(dirPath)) return dirMap.get(dirPath)!.children;
+  function ensureDir(dirPath: string): TreeNode[] {
+    const existing = dirMap.get(dirPath);
+    if (existing) return existing.children;
     const parts = dirPath.split("/");
     let nodes = root;
     let cur = "";
     for (const part of parts) {
       cur = cur ? `${cur}/${part}` : part;
-      if (!dirMap.has(cur)) {
-        const d: TreeNode = { name: part, path: cur, type: "dir", children: [] };
+      let d = dirMap.get(cur);
+      if (!d) {
+        d = { name: part, path: cur, type: "dir", children: [] };
         nodes.push(d);
         dirMap.set(cur, d);
       }
-      nodes = dirMap.get(cur)!.children;
+      nodes = d.children;
     }
     return nodes;
   }
@@ -85,7 +87,7 @@ function buildTree(entries: string[]): TreeNode[] {
   for (const entry of [...entries].sort()) {
     if (entry.endsWith("/")) {
       // Explicit directory entry — ensure the node exists (may already be created)
-      ensureDir(entry.slice(0, -1), root);
+      ensureDir(entry.slice(0, -1));
     } else {
       // File — ensure parent dirs exist, then push file node
       const parts = entry.split("/");
@@ -93,12 +95,13 @@ function buildTree(entries: string[]): TreeNode[] {
       let cur = "";
       for (let i = 0; i < parts.length - 1; i++) {
         cur = cur ? `${cur}/${parts[i]}` : parts[i];
-        if (!dirMap.has(cur)) {
-          const d: TreeNode = { name: parts[i], path: cur, type: "dir", children: [] };
+        let d = dirMap.get(cur);
+        if (!d) {
+          d = { name: parts[i], path: cur, type: "dir", children: [] };
           nodes.push(d);
           dirMap.set(cur, d);
         }
-        nodes = dirMap.get(cur)!.children;
+        nodes = d.children;
       }
       const fname = parts[parts.length - 1];
       if (fname) nodes.push({ name: fname, path: entry, type: "file", children: [] });
@@ -156,7 +159,7 @@ function SkillsOverview({
     const neverUsed = skills.filter((s) => s.calls === 0);
     const recent = skills
       .filter((s) => s.last_used)
-      .sort((a, b) => (a.last_used! < b.last_used! ? 1 : -1))
+      .sort((a, b) => ((a.last_used ?? "") < (b.last_used ?? "") ? 1 : -1))
       .slice(0, 6);
     const missingCalls = missing.reduce((n, m) => n + m.calls, 0);
     return {
@@ -320,7 +323,7 @@ export default function SkillsPage() {
   const [newEntryName, setNewEntryName] = React.useState("");
   const inlineRef = React.useRef<HTMLInputElement>(null);
   // cancelRef prevents onBlur from committing when Escape was pressed
-  const cancelRef = React.useRef(false);
+  const cancelRef = React.useRef<boolean>(false);
 
   // new skill dialog
   const [newOpen, setNewOpen] = React.useState(false);
@@ -823,6 +826,13 @@ export default function SkillsPage() {
     });
   }
 
+  // Reference shown for one recent skill call: its task, else its conversation session.
+  function callRef(c: SkillCall): string {
+    if (c.task_id > 0) return t("taskRef", { id: c.task_id });
+    if (c.session_id) return t("sessionRef");
+    return "—";
+  }
+
   const selectedSkill = selected ? (skills.find((s) => s.name === selected.skill) ?? null) : null;
 
   return (
@@ -1070,17 +1080,16 @@ export default function SkillsPage() {
                       ))}
                     </div>
                   )}
-                  {usageLoading ? (
-                    <p className="text-xs text-muted-foreground">{t("loadingCalls")}</p>
-                  ) : usageCalls.length > 0 ? (
+                  {usageLoading && <p className="text-xs text-muted-foreground">{t("loadingCalls")}</p>}
+                  {!usageLoading && usageCalls.length > 0 && (
                     <div className="rounded-md border">
                       <div className="border-b px-2 py-1 text-xs text-muted-foreground">
                         {t("recentCallsCount", { count: usageCalls.length })}
                       </div>
                       <div className="max-h-56 overflow-y-auto">
-                        {usageCalls.map((c, i) => (
+                        {usageCalls.map((c) => (
                           <div
-                            key={`${c.ts}-${i}`}
+                            key={`${c.ts}-${c.agent_key}-${c.task_id}-${c.session_id}`}
                             className="flex items-center gap-2 border-b px-2 py-1 text-xs last:border-b-0"
                           >
                             <span className="tabular-nums text-muted-foreground">
@@ -1089,14 +1098,13 @@ export default function SkillsPage() {
                             <Badge variant="outline" className="font-normal">
                               {c.agent_key || "—"}
                             </Badge>
-                            <span className="ml-auto text-muted-foreground">
-                              {c.task_id > 0 ? t("taskRef", { id: c.task_id }) : c.session_id ? t("sessionRef") : "—"}
-                            </span>
+                            <span className="ml-auto text-muted-foreground">{callRef(c)}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ) : (
+                  )}
+                  {!usageLoading && usageCalls.length === 0 && (
                     <p className="text-xs text-muted-foreground">{t("noCallsYet")}</p>
                   )}
                 </div>
@@ -1187,11 +1195,9 @@ export default function SkillsPage() {
               {pendingDelete?.kind === "file" && t("deleteFileQ", { path: pendingDelete.path })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDelete?.kind === "skill"
-                ? t("deleteSkillDesc")
-                : pendingDelete?.kind === "dir"
-                  ? t("deleteFolderDesc")
-                  : t("irreversible")}
+              {pendingDelete?.kind === "skill" && t("deleteSkillDesc")}
+              {pendingDelete?.kind === "dir" && t("deleteFolderDesc")}
+              {pendingDelete?.kind !== "skill" && pendingDelete?.kind !== "dir" && t("irreversible")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

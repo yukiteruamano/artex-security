@@ -198,7 +198,7 @@ export default function AssetsPage() {
       setSelected(new Set());
       refresh();
     } catch (e) {
-      toast.error(t("toast.deleteFailed", { msg: String((e as Error)?.message ?? e) }));
+      toast.error(t("toast.deleteFailed", { msg: String((e as Error | undefined)?.message ?? e) }));
     } finally {
       setDeleting(false);
       setDeleteOpen(false);
@@ -217,7 +217,7 @@ export default function AssetsPage() {
       toast.success(msg);
       refresh();
     } catch (e) {
-      toast.error(t("toast.deleteFailed", { msg: String((e as Error)?.message ?? e) }));
+      toast.error(t("toast.deleteFailed", { msg: String((e as Error | undefined)?.message ?? e) }));
     } finally {
       setCompanyDeleting(false);
       setCompanyDeleteTarget(null);
@@ -264,7 +264,7 @@ export default function AssetsPage() {
         setDslError("");
       } catch (e) {
         if (assetsRequestRef.current !== request) return;
-        setDslError(String((e as Error)?.message ?? e));
+        setDslError(String((e as Error | undefined)?.message ?? e));
         setRows([]);
         setRowsTab(tab);
         setTotal(0);
@@ -379,6 +379,7 @@ export default function AssetsPage() {
                         {c.scope?.length ? (
                           <div className="flex flex-wrap gap-1">
                             {c.scope.map((s, i) => (
+                              // biome-ignore lint/suspicious/noArrayIndexKey: scope entries have no id and may repeat; the list comes straight from the company record
                               <Badge key={i} variant="secondary" className="font-mono text-[11px]">
                                 {s.raw}
                               </Badge>
@@ -673,6 +674,7 @@ export default function AssetsPage() {
                         const item = authItem as Record<string, string>;
                         const label = item.type || item.username || t("authFallback");
                         return (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: auth entries have no id and may repeat; the list comes straight from the asset record
                           <span key={i} className="inline-flex items-center gap-1 text-[11px]">
                             <KeyRoundIcon className="size-3 text-muted-foreground" />
                             <span className="font-mono">{label}</span>
@@ -876,13 +878,15 @@ function AssetCard({
             <TableRow>
               {cols.map((c, i) =>
                 c === "" && i === 0 && onToggleAll ? (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: the first and last column labels are empty spacer cells, so the label is not unique; the header row never reorders
                   <TableHead key={i} className="w-8 pr-0">
                     <Checkbox
-                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      checked={allSelected || (someSelected ? "indeterminate" : false)}
                       onCheckedChange={() => onToggleAll(pageIds)}
                     />
                   </TableHead>
                 ) : (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: same spacer-label reason as the checkbox column; position is the column identity
                   <TableHead key={c + i}>{c}</TableHead>
                 ),
               )}
@@ -958,6 +962,7 @@ function Chips({ items, mono }: { items: string[]; mono?: boolean }) {
   return (
     <div className="flex flex-wrap gap-1">
       {clean.map((s, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: technology names may repeat; the list is a filtered copy of one asset's record
         <Badge key={i} variant="outline" className={cn("text-[10px]", mono && "font-mono")}>
           {s}
         </Badge>
@@ -1030,7 +1035,7 @@ function CompanyDialog({ onSaved }: { onSaved: () => void }) {
       setOpen(false);
       onSaved();
     } catch (e) {
-      const msg = String((e as Error)?.message ?? e);
+      const msg = String((e as Error | undefined)?.message ?? e);
       if (/:\s*409$/.test(msg)) toast.error(t("companyDialog.exists"));
       else toast.error(t("saveFailed", { msg }));
     } finally {
@@ -1104,14 +1109,14 @@ function EditScopeDialog({ company, onSaved }: { company: Company; onSaved: () =
     setBusy(true);
     try {
       const res = await api.updateCompanyScope(company.id, parsedScope.rules, reason);
-      const errCount = res.invalid ?? 0;
+      const errCount = res.invalid;
       if (errCount > 0) toast.warning(t("editScope.savedWithInvalid", { invalid: errCount }));
       else toast.success(t("editScope.updated", { added: res.added }));
       showScopeWarnings(res.warnings);
       setOpen(false);
       onSaved();
     } catch (e) {
-      toast.error(t("saveFailed", { msg: String((e as Error)?.message ?? e) }));
+      toast.error(t("saveFailed", { msg: String((e as Error | undefined)?.message ?? e) }));
     } finally {
       setBusy(false);
     }
@@ -1186,14 +1191,14 @@ function AppendScopeDialog({ company, onSaved }: { company: Company; onSaved: ()
     setBusy(true);
     try {
       const res = await api.addCompanyScope(company.id, parsedScope.rules, reason);
-      const errCount = res.invalid ?? 0;
+      const errCount = res.invalid;
       if (errCount > 0) toast.warning(t("editScope.savedWithInvalid", { invalid: errCount }));
       else toast.success(t("appendScope.appended", { added: res.added }));
       showScopeWarnings(res.warnings);
       setOpen(false);
       onSaved();
     } catch (e) {
-      toast.error(t("saveFailed", { msg: String((e as Error)?.message ?? e) }));
+      toast.error(t("saveFailed", { msg: String((e as Error | undefined)?.message ?? e) }));
     } finally {
       setBusy(false);
     }

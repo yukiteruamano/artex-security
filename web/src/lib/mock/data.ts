@@ -2901,11 +2901,11 @@ export const tokenSessions: SessionTokenUsage[] = (() => {
   const totals = new Map<string, SessionTokenUsage>();
   for (const item of activity) {
     if (item.kind !== "result") continue;
-    let session = "";
+    let session: string | null = null;
     if (item.worker === "mainagent") session = "main";
     else if (item.worker === "planner") session = "plan";
     else if (item.intent_id) session = `intent:${item.intent_id}`;
-    if (!session) continue;
+    if (session === null) continue;
     const current = totals.get(session) ?? {
       session,
       input_tokens: 0,
@@ -4318,9 +4318,9 @@ export const llmRecords = [
 ];
 
 // Distinct tasks with counts, derived from llmRecords above (task picker).
-const llmTaskCounts: Record<string, number> = {};
-for (const r of llmRecords) if (r.task_id) llmTaskCounts[r.task_id] = (llmTaskCounts[r.task_id] ?? 0) + 1;
-export const llmTasks: LLMTask[] = Object.entries(llmTaskCounts).map(([task_id, count]) => ({ task_id, count }));
+const llmTaskCounts = new Map<string, number>();
+for (const r of llmRecords) llmTaskCounts.set(r.task_id, (llmTaskCounts.get(r.task_id) ?? 0) + 1);
+export const llmTasks: LLMTask[] = [...llmTaskCounts].map(([task_id, count]) => ({ task_id, count }));
 
 export function llmRecordDetail(id: number, records = llmRecords) {
   const item = records.find((r) => r.id === id) ?? records[0];

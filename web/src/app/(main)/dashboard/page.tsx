@@ -139,15 +139,15 @@ export default function DashboardPage() {
   const [settings, setSettings] = React.useState<Settings | null>(null);
   const [pending, setPending] = React.useState<InterceptPending[]>([]);
   const [activity, setActivity] = React.useState<Activity[]>([]);
-  const [tokens, setTokens] = React.useState<TokenTotal | null>(null);
+  const [, setTokens] = React.useState<TokenTotal | null>(null);
   const [convTokens, setConvTokens] = React.useState<ConvTokenSummary[]>([]);
   const [usageStats, setUsageStats] = React.useState<UsageStats | null>(null);
   const [assetCounts, setAssetCounts] = React.useState<Record<string, number>>({});
   const [traffic, setTraffic] = React.useState<TrafficExchange[]>([]);
-  const [agents, setAgents] = React.useState<Agent[]>([]);
-  const [mcpServers, setMcpServers] = React.useState<MCPServer[]>([]);
-  const [skills, setSkills] = React.useState<SkillItem[]>([]);
-  const [tools, setTools] = React.useState<Tool[]>([]);
+  const [, setAgents] = React.useState<Agent[]>([]);
+  const [, setMcpServers] = React.useState<MCPServer[]>([]);
+  const [, setSkills] = React.useState<SkillItem[]>([]);
+  const [, setTools] = React.useState<Tool[]>([]);
   const [llmProfiles, setLLMProfiles] = React.useState<LLMProfile[]>([]);
 
   // The task list is the most expensive dashboard source. Poll it independently
@@ -259,7 +259,7 @@ export default function DashboardPage() {
   // ── derived ───────────────────────────────────────────────────────────────
 
   const tasksByStatus = React.useMemo(() => {
-    const m: Record<string, number> = {};
+    const m: Record<string, number> = { running: 0, paused: 0, done: 0 };
     for (const t of tasks) m[t.status] = (m[t.status] ?? 0) + 1;
     return m;
   }, [tasks]);
@@ -323,7 +323,6 @@ export default function DashboardPage() {
 
   // system
   const activeProfile = llmProfiles.find((p) => p.is_default);
-  const enabledTools = tools.filter((t) => t.enabled);
   const pendingCount = pending.length;
 
   // ── token stats per LLM profile ──────────────────────────────────────────
@@ -479,12 +478,6 @@ export default function DashboardPage() {
     return a.kind;
   }
 
-  function workerColor(w: string): string {
-    if (w === "planner") return "text-violet-400";
-    if (w === "mainagent") return "text-cyan-400";
-    return "text-blue-400";
-  }
-
   function workerBg(w: string): string {
     if (w === "planner") return "bg-violet-500/10 text-violet-400 border-violet-500/20";
     if (w === "mainagent") return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
@@ -512,22 +505,22 @@ export default function DashboardPage() {
               <TargetIcon className="size-3" /> {t("activeTasks")}
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-semibold tabular-nums">{tasksByStatus.running ?? 0}</span>
+              <span className="text-2xl font-semibold tabular-nums">{tasksByStatus.running}</span>
               <span className="text-xs text-muted-foreground">/ {tasks.length}</span>
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10px]">
-            {(tasksByStatus.running ?? 0) > 0 && (
+            {tasksByStatus.running > 0 && (
               <span className="text-blue-400">
                 {t("statExplore")} {tasksByStatus.running}
               </span>
             )}
-            {(tasksByStatus.paused ?? 0) > 0 && (
+            {tasksByStatus.paused > 0 && (
               <span className="text-amber-400">
                 {t("statPaused")} {tasksByStatus.paused}
               </span>
             )}
-            {(tasksByStatus.done ?? 0) > 0 && (
+            {tasksByStatus.done > 0 && (
               <span className="text-emerald-400">
                 {t("statDone")} {tasksByStatus.done}
               </span>
@@ -663,7 +656,8 @@ export default function DashboardPage() {
             {llmProfiles.map((p) => {
               const key = Number(p.id);
               const hasData = tokenByProfile.has(key) || (p.is_default && tokenByProfile.has(defaultProfileId));
-              const resolvedKey = tokenByProfile.has(key) ? key : p.is_default ? defaultProfileId : key;
+              const preferredKey = p.is_default ? defaultProfileId : key;
+              const resolvedKey = tokenByProfile.has(key) ? key : preferredKey;
               return (
                 <button
                   type="button"
@@ -720,19 +714,19 @@ export default function DashboardPage() {
                   {
                     label: t("inputUncached"),
                     value: displayedTokens.input - displayedTokens.cacheRead,
-                    barColor: dailyTrendConfig.input.color!,
+                    barColor: dailyTrendConfig.input.color,
                     text: "text-blue-400",
                   },
                   {
                     label: t("cacheHit"),
                     value: displayedTokens.cacheRead,
-                    barColor: dailyTrendConfig.cacheRead.color!,
+                    barColor: dailyTrendConfig.cacheRead.color,
                     text: "text-emerald-400",
                   },
                   {
                     label: t("output"),
                     value: displayedTokens.output,
-                    barColor: dailyTrendConfig.output.color!,
+                    barColor: dailyTrendConfig.output.color,
                     text: "text-violet-400",
                   },
                 ].map(({ label, value, barColor, text }) => {

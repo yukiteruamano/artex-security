@@ -273,7 +273,7 @@ function SyncWorkbench() {
         create_company: dimension === "project" ? createCompany : false,
       });
       setResult(r);
-      const total = Object.values(r.synced ?? {}).reduce((a, b) => a + b, 0);
+      const total = Object.values(r.synced).reduce((a, b) => a + b, 0);
       toast.success(t("syncDone", { total }));
     } catch (e) {
       toast.error(t("syncFailed", { msg: (e as Error).message }));

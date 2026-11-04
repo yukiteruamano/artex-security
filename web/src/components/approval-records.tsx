@@ -54,7 +54,7 @@ function fmtTime(value?: string) {
 function source(row: InterceptApprovalRow) {
   if (row.decision_source) return row.decision_source;
   if (row.rule_id) return "rule";
-  return row.reason?.startsWith("[模型]") ? "model" : "unknown";
+  return row.reason.startsWith("[模型]") ? "model" : "unknown";
 }
 
 function originLabel(row: InterceptApprovalRow, t: Translator) {
@@ -115,7 +115,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function MatchCell({ row, showReason = true }: { row: InterceptApprovalRow; showReason?: boolean }) {
   const t = useTranslations("approval");
-  const reason = row.reason?.replace(/^\[模型\]\s*/, "");
+  const reason = row.reason.replace(/^\[模型\]\s*/, "");
   return (
     <div className="flex min-w-0 flex-col gap-1">
       {source(row) === "model" ? (
@@ -165,6 +165,56 @@ function CodeBlock({ label, text, truncated = false }: { label: string; text: st
 
 function ModelReviewContext({ input }: { input: InterceptReviewInput }) {
   const t = useTranslations("approval");
+  let reviewBody: React.ReactNode;
+  if (input.version < 2) {
+    reviewBody = (
+      <>
+        {input.turn_input ? (
+          <CodeBlock
+            label={t("review.turnInputLegacy")}
+            text={input.turn_input}
+            truncated={input.background_truncated}
+          />
+        ) : null}
+        {input.task ? (
+          <>
+            <CodeBlock
+              label={t("review.taskDescLegacy")}
+              text={input.task.description}
+              truncated={input.task.truncated}
+            />
+            <CodeBlock label={t("review.taskGoalLegacy")} text={input.task.goal} truncated={input.task.truncated} />
+            <CodeBlock
+              label={t("review.taskConstraintsLegacy")}
+              text={JSON.stringify(input.task.constraints, null, 2)}
+            />
+          </>
+        ) : null}
+        {input.worker_intent ? (
+          <CodeBlock
+            label={t("review.workerIntentLegacy")}
+            text={input.worker_intent}
+            truncated={input.background_truncated}
+          />
+        ) : null}
+      </>
+    );
+  } else if (input.background) {
+    reviewBody = (
+      <div className="flex min-w-0 flex-col gap-2">
+        <CodeBlock
+          label={input.background.source === "user_message" ? t("review.bgUser") : t("review.bgWorkerLegacy")}
+          text={input.background.text}
+          truncated={input.background.truncated}
+        />
+        <p className="text-muted-foreground text-xs">
+          {input.background.source === "user_message" ? t("review.bgUserNote") : t("review.bgWorkerNote")}
+        </p>
+      </div>
+    );
+  } else {
+    reviewBody = <p className="text-muted-foreground text-xs">{t("review.noBg")}</p>;
+  }
   return (
     <section className="flex min-w-0 flex-col gap-4" aria-label={t("review.context")}>
       <div className="flex flex-col gap-2">
@@ -178,53 +228,7 @@ function ModelReviewContext({ input }: { input: InterceptReviewInput }) {
         label={t("review.currentCall")}
         text={JSON.stringify({ tool_name: input.tool_name, arguments: input.arguments }, null, 2)}
       />
-      {input.version >= 2 ? (
-        input.background ? (
-          <div className="flex min-w-0 flex-col gap-2">
-            <CodeBlock
-              label={input.background.source === "user_message" ? t("review.bgUser") : t("review.bgWorkerLegacy")}
-              text={input.background.text}
-              truncated={input.background.truncated}
-            />
-            <p className="text-muted-foreground text-xs">
-              {input.background.source === "user_message" ? t("review.bgUserNote") : t("review.bgWorkerNote")}
-            </p>
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-xs">{t("review.noBg")}</p>
-        )
-      ) : (
-        <>
-          {input.turn_input ? (
-            <CodeBlock
-              label={t("review.turnInputLegacy")}
-              text={input.turn_input}
-              truncated={input.background_truncated}
-            />
-          ) : null}
-          {input.task ? (
-            <>
-              <CodeBlock
-                label={t("review.taskDescLegacy")}
-                text={input.task.description}
-                truncated={input.task.truncated}
-              />
-              <CodeBlock label={t("review.taskGoalLegacy")} text={input.task.goal} truncated={input.task.truncated} />
-              <CodeBlock
-                label={t("review.taskConstraintsLegacy")}
-                text={JSON.stringify(input.task.constraints, null, 2)}
-              />
-            </>
-          ) : null}
-          {input.worker_intent ? (
-            <CodeBlock
-              label={t("review.workerIntentLegacy")}
-              text={input.worker_intent}
-              truncated={input.background_truncated}
-            />
-          ) : null}
-        </>
-      )}
+      {reviewBody}
       {input.working_directory ? <CodeBlock label={t("review.workingDir")} text={input.working_directory} /> : null}
       {input.version >= 3 ? (
         <p className="text-muted-foreground text-xs">{t("review.noHistory")}</p>
@@ -339,7 +343,7 @@ export function ApprovalDetail({
   if (row.status === "pending") execution = t("execution.not_started");
   if (audit && audit.correlation !== "exact" && audit.effective_action === "allow")
     execution = t("execution.notCorrelated");
-  const command = typeof row.tool_input?.command === "string" ? row.tool_input.command : undefined;
+  const command = typeof row.tool_input.command === "string" ? row.tool_input.command : undefined;
   let initialLabel = source(row) === "model" ? t("modelInitial") : t("ruleInitial");
   if (audit?.model_fallback) initialLabel = t("modelFallback");
   const agentName =
@@ -349,10 +353,7 @@ export function ApprovalDetail({
     <div className="flex min-w-0 flex-col gap-4 p-3 sm:p-5">
       <div className="grid min-w-0 gap-5 rounded-xl border bg-muted/20 p-4 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">
-          <CodeBlock
-            label={t("toolRequest", { agent: agentName })}
-            text={JSON.stringify(row.tool_input ?? {}, null, 2)}
-          />
+          <CodeBlock label={t("toolRequest", { agent: agentName })} text={JSON.stringify(row.tool_input, null, 2)} />
           {command ? (
             <Collapsible>
               <CollapsibleTrigger asChild>
@@ -379,7 +380,7 @@ export function ApprovalDetail({
             <MatchCell row={current} showReason={false} />
           </div>
           <p className="whitespace-pre-wrap break-words text-sm leading-7 [overflow-wrap:anywhere]">
-            {current.reason?.replace(/^\[模型\]\s*/, "") || t("noApprovalReason")}
+            {current.reason.replace(/^\[模型\]\s*/, "") || t("noApprovalReason")}
           </p>
           {audit?.decision_reason ? <p className="text-sm">{audit.decision_reason}</p> : null}
           {audit?.effective_action ? (
@@ -689,7 +690,7 @@ export function ApprovalRecords({ taskId }: { taskId?: string }) {
   const [deciding, setDeciding] = React.useState(false);
   const [revision, setRevision] = React.useState(0);
   const request = React.useRef(0);
-  const decisionLock = React.useRef(false);
+  const decisionLock = React.useRef<boolean>(false);
   const filterID = React.useId();
   const filtered = Boolean(filter.status || filter.decision_source);
 

@@ -366,13 +366,10 @@ function SessionItem({
   deleted?: boolean;
 }) {
   const t = useTranslations("sessions");
-  const icon = deleted ? (
-    <Trash2Icon className="size-3.5 text-destructive" />
-  ) : s.role === "worker" ? (
-    statusIcon(s.status)
-  ) : s.live ? (
-    <Loader2Icon className="size-3.5 animate-spin text-blue-500" />
-  ) : null;
+  let icon: React.ReactNode = null;
+  if (deleted) icon = <Trash2Icon className="size-3.5 text-destructive" />;
+  else if (s.role === "worker") icon = statusIcon(s.status);
+  else if (s.live) icon = <Loader2Icon className="size-3.5 animate-spin text-blue-500" />;
 
   const cancellable =
     s.role === "worker" &&
@@ -516,7 +513,7 @@ export function SessionsTab({ taskId }: { taskId: string }) {
     return undefined;
   }, [approvalFocus.state?.source, t]);
   // Keep a located archived/older session selectable after leaving focus mode.
-  const [locatedSession, setLocatedSession] = React.useState<{ taskId: string; session: Session }>();
+  const [locatedSession, setLocatedSession] = React.useState<{ taskId: string; session: Session } | undefined>();
   React.useEffect(() => {
     if (focusSession) setLocatedSession({ taskId, session: focusSession });
   }, [taskId, focusSession]);
@@ -585,7 +582,7 @@ export function SessionsTab({ taskId }: { taskId: string }) {
     try {
       const r = await api.newMainSession(taskId);
       setMainSegs((prev) => [{ seq: r.seq, created_at: r.created_at }, ...prev.filter((m) => m.seq !== r.seq)]);
-      setCurrentSeg(r.current ?? r.seq);
+      setCurrentSeg(r.current);
       // Seed an empty, loaded state so the new (empty) session renders immediately.
       setStore((prev) => ({ ...prev, [mainSessionKey(r.seq)]: { ...emptyState(), loaded: true } }));
       setActiveId(mainSessionId(r.seq));
@@ -668,7 +665,7 @@ export function SessionsTab({ taskId }: { taskId: string }) {
   // Highest seq the SSE-down fallback poll has already merged, per session key —
   // lets it skip setStore when a poll brings nothing new (no re-render churn).
   const fallbackMaxRef = React.useRef<Record<string, number>>({});
-  const atBottomRef = React.useRef(true); // transcript pinned to bottom?
+  const atBottomRef = React.useRef<boolean>(true); // transcript pinned to bottom?
   const llmToastSeqRef = React.useRef<Set<number>>(new Set());
   const chatStatusRequestRef = React.useRef(0);
   const firstIntentsRef = React.useRef<TaskNode[]>([]);
@@ -956,6 +953,7 @@ export function SessionsTab({ taskId }: { taskId: string }) {
       };
     }
 
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: mainboot is missing from the freshly reset token record, so the fallback is reachable
     const token = (reqTokenRef.current.mainboot ?? 0) + 1;
     reqTokenRef.current.mainboot = token;
     let bootKey = mainSessionKey(0);
@@ -1324,13 +1322,12 @@ export function SessionsTab({ taskId }: { taskId: string }) {
   };
 
   const active = sessions.find((s) => s.id === activeId) ?? { ...MAIN_SESSION, title: t("title.main", { n: 1 }) };
-  const side = useSideQuestions(
-    active.role === "mainagent"
-      ? `/api/tasks/${taskId}/chat`
-      : active.role === "worker" && !active.inherited && active.intent_id
-        ? `/api/tasks/${taskId}/intents/${active.intent_id}`
-        : null,
-  );
+  // Side questions attach to the main chat or to a live worker intent; otherwise none.
+  let sideEndpoint: string | null = null;
+  if (active.role === "mainagent") sideEndpoint = `/api/tasks/${taskId}/chat`;
+  else if (active.role === "worker" && !active.inherited && active.intent_id)
+    sideEndpoint = `/api/tasks/${taskId}/intents/${active.intent_id}`;
+  const side = useSideQuestions(sideEndpoint);
   const isMain = active.role === "mainagent";
   const isPlanner = active.role === "planner";
   const isSystem = active.role === "system";
@@ -1956,229 +1953,249 @@ export function SessionsTab({ taskId }: { taskId: string }) {
                     {t("transcript.loadingMore")}
                   </div>
                 )}
-                {showLoader ? (
-                  <div className="flex items-center gap-2 pl-9 text-xs text-muted-foreground">
-                    <Loader2Icon className="size-3.5 animate-spin" />
-                    {t("transcript.loadingActivity")}
-                  </div>
-                ) : activeState?.error ? (
-                  <div className="flex items-center gap-2 pl-9 text-xs text-red-500">
-                    <CircleXIcon className="size-3.5" />
-                    {t("transcript.loadError", { error: activeState.error })}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-xs"
-                      onClick={() => loadSession(activeKey)}
-                    >
-                      {t("transcript.retry")}
-                    </Button>
-                  </div>
-                ) : activity.length ? (
-                  <Transcript
-                    activity={activity}
-                    live={active.live}
-                    taskId={taskId}
-                    chat={isMain}
-                    focusedSeq={focusHistory.ready ? approvalFocus.state?.source?.seq : undefined}
-                  />
-                ) : (
-                  <div className="pl-9 text-xs text-muted-foreground">
-                    {isMain ? t("transcript.emptyMain") : t("transcript.emptyWorker")}
-                  </div>
-                )}
+                {(() => {
+                  if (showLoader)
+                    return (
+                      <div className="flex items-center gap-2 pl-9 text-xs text-muted-foreground">
+                        <Loader2Icon className="size-3.5 animate-spin" />
+                        {t("transcript.loadingActivity")}
+                      </div>
+                    );
+                  if (activeState?.error)
+                    return (
+                      <div className="flex items-center gap-2 pl-9 text-xs text-red-500">
+                        <CircleXIcon className="size-3.5" />
+                        {t("transcript.loadError", { error: activeState.error })}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => loadSession(activeKey)}
+                        >
+                          {t("transcript.retry")}
+                        </Button>
+                      </div>
+                    );
+                  if (activity.length)
+                    return (
+                      <Transcript
+                        activity={activity}
+                        live={active.live}
+                        taskId={taskId}
+                        chat={isMain}
+                        focusedSeq={focusHistory.ready ? approvalFocus.state?.source?.seq : undefined}
+                      />
+                    );
+                  return (
+                    <div className="pl-9 text-xs text-muted-foreground">
+                      {isMain ? t("transcript.emptyMain") : t("transcript.emptyWorker")}
+                    </div>
+                  );
+                })()}
               </div>
             </ScrollArea>
-            {isMain ? (
-              <div className="border-t p-3">
-                {attachments.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {attachments.map((a) => (
-                      <div
-                        key={a.path}
-                        className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-xs"
-                        title={a.path}
-                      >
-                        <PaperclipIcon className="size-3 shrink-0 text-primary" />
-                        <span className="max-w-[160px] truncate">{a.name}</span>
-                        <span className="text-muted-foreground">{fmtBytes(a.size)}</span>
-                        <button
-                          type="button"
-                          className="ml-0.5 text-muted-foreground hover:text-foreground"
-                          onClick={() => setAttachments((p) => p.filter((x) => x.path !== a.path))}
-                          title={t("composer.attachmentRemove")}
-                        >
-                          <XIcon className="size-3" />
-                        </button>
+            {(() => {
+              if (isMain)
+                return (
+                  <div className="border-t p-3">
+                    {attachments.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {attachments.map((a) => (
+                          <div
+                            key={a.path}
+                            className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-xs"
+                            title={a.path}
+                          >
+                            <PaperclipIcon className="size-3 shrink-0 text-primary" />
+                            <span className="max-w-[160px] truncate">{a.name}</span>
+                            <span className="text-muted-foreground">{fmtBytes(a.size)}</span>
+                            <button
+                              type="button"
+                              className="ml-0.5 text-muted-foreground hover:text-foreground"
+                              onClick={() => setAttachments((p) => p.filter((x) => x.path !== a.path))}
+                              title={t("composer.attachmentRemove")}
+                            >
+                              <XIcon className="size-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => void pickFiles(e.target.files)}
-                />
-                <InputGroup className="min-h-9 has-disabled:opacity-100">
-                  <MentionTextarea
-                    inputGroup
-                    rows={1}
-                    aria-label={t("composer.mainAria")}
-                    placeholder={mainBusy ? t("composer.mainBusyPlaceholder") : t("composer.mainPlaceholder")}
-                    value={input}
-                    disabled={sending}
-                    onValueChange={setInput}
-                    onKeyDown={(e) => {
-                      if (!shouldSubmitOnKey(e, sendMode)) return;
-                      e.preventDefault();
-                      send();
-                    }}
-                    className="max-h-36 min-h-9 overflow-y-auto"
-                  />
-                  <InputGroupAddon align="block-end">
-                    <InputGroupButton
-                      size="icon-xs"
-                      variant="ghost"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={mainBusy || uploading}
-                      title={t("composer.uploadTitle")}
-                      aria-label={t("composer.uploadTitle")}
-                    >
-                      {uploading ? <Loader2Icon className="animate-spin" /> : <PaperclipIcon />}
-                    </InputGroupButton>
-                    {mainBusy && isBtwCommand(input) && (
-                      <InputGroupButton size="icon-xs" onClick={send} aria-label={t("composer.sideQuestion")}>
-                        <ArrowUpIcon />
-                      </InputGroupButton>
                     )}
-                    {mainBusy ? (
-                      <InputGroupButton
-                        className="ml-auto"
-                        size="icon-xs"
-                        variant="destructive"
-                        onClick={stop}
-                        disabled={stopping}
-                        title={t("composer.stopTitle")}
-                        aria-label={t("composer.stopTitle")}
-                      >
-                        {stopping ? <Loader2Icon className="animate-spin" /> : <SquareIcon />}
-                      </InputGroupButton>
-                    ) : (
-                      <InputGroupButton
-                        className="ml-auto"
-                        size="icon-xs"
-                        variant="default"
-                        onClick={send}
-                        disabled={(!input.trim() && attachments.length === 0) || sending}
-                        title={t("composer.sendTitle")}
-                        aria-label={t("composer.sendTitle")}
-                      >
-                        {sending ? <Loader2Icon className="animate-spin" /> : <ArrowUpIcon />}
-                      </InputGroupButton>
-                    )}
-                  </InputGroupAddon>
-                </InputGroup>
-              </div>
-            ) : active.role === "worker" &&
-              !active.inherited &&
-              (active.status === "running" || active.status === "paused") ? (
-              <div className="border-t p-3">
-                <InputGroup className="min-h-9 has-disabled:opacity-100">
-                  <MentionTextarea
-                    inputGroup
-                    rows={1}
-                    aria-label={t("composer.workerAria", { id: active.intent_id ?? "" })}
-                    placeholder={t("composer.workerPlaceholder", { id: active.intent_id ?? "" })}
-                    value={workerMessage}
-                    onValueChange={(value) => {
-                      setWorkerMessage(value);
-                      setWorkerMessageRequestId("");
-                    }}
-                    onKeyDown={(event) => {
-                      if (!shouldSubmitOnKey(event, sendMode)) return;
-                      event.preventDefault();
-                      sendWorkerChat();
-                    }}
-                    disabled={workerMessageSending}
-                    aria-invalid={workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS}
-                    className="max-h-36 min-h-9 overflow-y-auto"
-                  />
-                  <InputGroupAddon align="block-end">
-                    <span
-                      className={cn(
-                        "px-1 text-[10px] tabular-nums text-muted-foreground",
-                        workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS && "text-destructive",
-                      )}
-                    >
-                      {workerMessageCharCount(workerMessage)}/{MAX_WORKER_MESSAGE_CHARS}
-                    </span>
-                    {active.status === "running" && isBtwCommand(workerMessage) && (
-                      <InputGroupButton size="icon-xs" onClick={sendWorkerChat} aria-label={t("composer.sideQuestion")}>
-                        <ArrowUpIcon />
-                      </InputGroupButton>
-                    )}
-                    {active.status === "running" ? (
-                      <InputGroupButton
-                        className="ml-auto"
-                        size="icon-xs"
-                        variant="destructive"
-                        onClick={() => void controlWorker(active, "pause")}
-                        disabled={controllingIntent === active.intent_id}
-                        title={t("composer.pauseTitle")}
-                        aria-label={t("composer.pauseTitle")}
-                      >
-                        {controllingIntent === active.intent_id ? (
-                          <Loader2Icon className="animate-spin" />
-                        ) : (
-                          <SquareIcon />
-                        )}
-                      </InputGroupButton>
-                    ) : (
-                      <>
-                        <InputGroupButton
-                          className="ml-auto"
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => void controlWorker(active, "resume")}
-                          disabled={controllingIntent === active.intent_id || workerMessageSending}
-                          title={t("composer.resumeTitle")}
-                          aria-label={t("composer.resumeAria")}
-                        >
-                          {controllingIntent === active.intent_id ? (
-                            <Loader2Icon className="animate-spin" />
-                          ) : (
-                            t("composer.resumeLabel")
-                          )}
-                        </InputGroupButton>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => void pickFiles(e.target.files)}
+                    />
+                    <InputGroup className="min-h-9 has-disabled:opacity-100">
+                      <MentionTextarea
+                        inputGroup
+                        rows={1}
+                        aria-label={t("composer.mainAria")}
+                        placeholder={mainBusy ? t("composer.mainBusyPlaceholder") : t("composer.mainPlaceholder")}
+                        value={input}
+                        disabled={sending}
+                        onValueChange={setInput}
+                        onKeyDown={(e) => {
+                          if (!shouldSubmitOnKey(e, sendMode)) return;
+                          e.preventDefault();
+                          send();
+                        }}
+                        className="max-h-36 min-h-9 overflow-y-auto"
+                      />
+                      <InputGroupAddon align="block-end">
                         <InputGroupButton
                           size="icon-xs"
-                          variant="default"
-                          onClick={sendWorkerChat}
-                          disabled={
-                            workerMessageSending ||
-                            !workerMessage.trim() ||
-                            workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS
-                          }
-                          title={t("composer.sendTitle")}
-                          aria-label={t("composer.sendTitle")}
+                          variant="ghost"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={mainBusy || uploading}
+                          title={t("composer.uploadTitle")}
+                          aria-label={t("composer.uploadTitle")}
                         >
-                          {workerMessageSending ? <Spinner /> : <ArrowUpIcon />}
+                          {uploading ? <Loader2Icon className="animate-spin" /> : <PaperclipIcon />}
                         </InputGroupButton>
-                      </>
-                    )}
-                  </InputGroupAddon>
-                </InputGroup>
-              </div>
-            ) : (
-              <div className="flex items-center border-t px-4 py-2">
-                <TodoPopover
-                  seq={latestTodoSeq}
-                  fetchDetail={(seq) => api.activityDetail(seq, taskId).then((r) => r.detail ?? "")}
-                />
-              </div>
-            )}
+                        {mainBusy && isBtwCommand(input) && (
+                          <InputGroupButton size="icon-xs" onClick={send} aria-label={t("composer.sideQuestion")}>
+                            <ArrowUpIcon />
+                          </InputGroupButton>
+                        )}
+                        {mainBusy ? (
+                          <InputGroupButton
+                            className="ml-auto"
+                            size="icon-xs"
+                            variant="destructive"
+                            onClick={stop}
+                            disabled={stopping}
+                            title={t("composer.stopTitle")}
+                            aria-label={t("composer.stopTitle")}
+                          >
+                            {stopping ? <Loader2Icon className="animate-spin" /> : <SquareIcon />}
+                          </InputGroupButton>
+                        ) : (
+                          <InputGroupButton
+                            className="ml-auto"
+                            size="icon-xs"
+                            variant="default"
+                            onClick={send}
+                            disabled={(!input.trim() && attachments.length === 0) || sending}
+                            title={t("composer.sendTitle")}
+                            aria-label={t("composer.sendTitle")}
+                          >
+                            {sending ? <Loader2Icon className="animate-spin" /> : <ArrowUpIcon />}
+                          </InputGroupButton>
+                        )}
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                );
+              if (
+                active.role === "worker" &&
+                !active.inherited &&
+                (active.status === "running" || active.status === "paused")
+              )
+                return (
+                  <div className="border-t p-3">
+                    <InputGroup className="min-h-9 has-disabled:opacity-100">
+                      <MentionTextarea
+                        inputGroup
+                        rows={1}
+                        aria-label={t("composer.workerAria", { id: active.intent_id ?? "" })}
+                        placeholder={t("composer.workerPlaceholder", { id: active.intent_id ?? "" })}
+                        value={workerMessage}
+                        onValueChange={(value) => {
+                          setWorkerMessage(value);
+                          setWorkerMessageRequestId("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (!shouldSubmitOnKey(event, sendMode)) return;
+                          event.preventDefault();
+                          sendWorkerChat();
+                        }}
+                        disabled={workerMessageSending}
+                        aria-invalid={workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS}
+                        className="max-h-36 min-h-9 overflow-y-auto"
+                      />
+                      <InputGroupAddon align="block-end">
+                        <span
+                          className={cn(
+                            "px-1 text-[10px] tabular-nums text-muted-foreground",
+                            workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS && "text-destructive",
+                          )}
+                        >
+                          {workerMessageCharCount(workerMessage)}/{MAX_WORKER_MESSAGE_CHARS}
+                        </span>
+                        {active.status === "running" && isBtwCommand(workerMessage) && (
+                          <InputGroupButton
+                            size="icon-xs"
+                            onClick={sendWorkerChat}
+                            aria-label={t("composer.sideQuestion")}
+                          >
+                            <ArrowUpIcon />
+                          </InputGroupButton>
+                        )}
+                        {active.status === "running" ? (
+                          <InputGroupButton
+                            className="ml-auto"
+                            size="icon-xs"
+                            variant="destructive"
+                            onClick={() => void controlWorker(active, "pause")}
+                            disabled={controllingIntent === active.intent_id}
+                            title={t("composer.pauseTitle")}
+                            aria-label={t("composer.pauseTitle")}
+                          >
+                            {controllingIntent === active.intent_id ? (
+                              <Loader2Icon className="animate-spin" />
+                            ) : (
+                              <SquareIcon />
+                            )}
+                          </InputGroupButton>
+                        ) : (
+                          <>
+                            <InputGroupButton
+                              className="ml-auto"
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => void controlWorker(active, "resume")}
+                              disabled={controllingIntent === active.intent_id || workerMessageSending}
+                              title={t("composer.resumeTitle")}
+                              aria-label={t("composer.resumeAria")}
+                            >
+                              {controllingIntent === active.intent_id ? (
+                                <Loader2Icon className="animate-spin" />
+                              ) : (
+                                t("composer.resumeLabel")
+                              )}
+                            </InputGroupButton>
+                            <InputGroupButton
+                              size="icon-xs"
+                              variant="default"
+                              onClick={sendWorkerChat}
+                              disabled={
+                                workerMessageSending ||
+                                !workerMessage.trim() ||
+                                workerMessageCharCount(workerMessage) > MAX_WORKER_MESSAGE_CHARS
+                              }
+                              title={t("composer.sendTitle")}
+                              aria-label={t("composer.sendTitle")}
+                            >
+                              {workerMessageSending ? <Spinner /> : <ArrowUpIcon />}
+                            </InputGroupButton>
+                          </>
+                        )}
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                );
+              return (
+                <div className="flex items-center border-t px-4 py-2">
+                  <TodoPopover
+                    seq={latestTodoSeq}
+                    fetchDetail={(seq) => api.activityDetail(seq, taskId).then((r) => r.detail ?? "")}
+                  />
+                </div>
+              );
+            })()}
           </div>
         </SideQuestionWorkspace>
         <AlertDialog

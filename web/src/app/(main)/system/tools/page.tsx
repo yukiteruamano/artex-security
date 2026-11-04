@@ -39,37 +39,44 @@ type ParamRow = {
   parentKey?: string; // set when this is a sub-field of an array param's items
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toRows(schema: Record<string, any>): ParamRow[] {
-  const props = (schema?.properties ?? {}) as Record<string, Record<string, unknown>>;
-  const required = new Set<string>((schema?.required as string[]) ?? []);
+// Only the JSON-Schema keys this page reads or rewrites.
+type JsonSchema = {
+  type?: string;
+  description?: string;
+  default?: unknown;
+  required?: string[];
+  properties?: Record<string, JsonSchema>;
+  items?: JsonSchema;
+};
+
+function toRows(schema: JsonSchema): ParamRow[] {
+  const props = schema.properties ?? {};
+  const required = new Set<string>(schema.required ?? []);
   const rows: ParamRow[] = [];
   for (const [name, p] of Object.entries(props)) {
-    const type = String(p?.type ?? "");
-    const hasDefault = p != null && "default" in p && (p as Record<string, unknown>).default != null;
+    const type = String(p.type ?? "");
+    const hasDefault = p.default != null;
     rows.push({
       name,
       type,
       required: required.has(name),
-      description: String(p?.description ?? ""),
-      defaultStr: hasDefault ? String((p as Record<string, unknown>).default) : "",
+      description: String(p.description ?? ""),
+      defaultStr: hasDefault ? String(p.default) : "",
       scalar: ["string", "integer", "number", "boolean"].includes(type),
     });
     // Expand items.properties for array params so sub-fields are editable.
     if (type === "array") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const itemProps = (p as any)?.items?.properties as Record<string, Record<string, unknown>> | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const itemRequired = new Set<string>(((p as any)?.items?.required as string[]) ?? []);
+      const itemProps = p.items?.properties;
+      const itemRequired = new Set<string>(p.items?.required ?? []);
       if (itemProps) {
         for (const [subName, subP] of Object.entries(itemProps)) {
-          const subType = String((subP as Record<string, unknown>)?.type ?? "");
-          const subHasDefault = subP != null && "default" in subP && subP.default != null;
+          const subType = String(subP.type ?? "");
+          const subHasDefault = subP.default != null;
           rows.push({
             name: subName,
             type: subType,
             required: itemRequired.has(subName),
-            description: String(subP?.description ?? ""),
+            description: String(subP.description ?? ""),
             defaultStr: subHasDefault ? String(subP.default) : "",
             scalar: ["string", "integer", "number", "boolean"].includes(subType),
             parentKey: name,
@@ -95,16 +102,13 @@ function coerceDefault(type: string, raw: string): unknown {
 }
 
 // applyRows writes edited rows back into a deep-copied schema (structure untouched).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyRows(schema: Record<string, any>, rows: ParamRow[]): Record<string, any> {
-  const next = structuredClone(schema ?? {});
-  const props = (next.properties ?? {}) as Record<string, Record<string, unknown>>;
+function applyRows(schema: JsonSchema, rows: ParamRow[]): JsonSchema {
+  const next = structuredClone(schema);
+  const props = next.properties ?? {};
   for (const r of rows) {
     if (r.parentKey) {
       // Sub-field of an array param's items.properties
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parent = props[r.parentKey] as any;
-      const subP = parent?.items?.properties?.[r.name] as Record<string, unknown> | undefined;
+      const subP = props[r.parentKey]?.items?.properties?.[r.name];
       if (!subP) continue;
       subP.description = r.description;
       if (r.scalar) {
@@ -592,7 +596,7 @@ function CustomToolDialog({
     const e = (t.exec ?? {}) as Record<string, unknown>;
     setKey(t.key);
     setDescription(t.description);
-    setKind((t.kind as "shell" | "command" | "script" | "http") ?? "shell");
+    setKind((t.kind ?? "shell") as "shell" | "command" | "script" | "http");
     setEx({
       command: String(e.command ?? ""),
       code: String(e.code ?? ""),
@@ -604,8 +608,8 @@ function CustomToolDialog({
       proxy: String(e.proxy ?? ""),
       use_recording_proxy: !!e.use_recording_proxy,
     });
-    setSchemaText(t.schema && Object.keys(t.schema).length ? JSON.stringify(t.schema, null, 2) : "");
-    setBound(t.agents ?? []);
+    setSchemaText(Object.keys(t.schema).length ? JSON.stringify(t.schema, null, 2) : "");
+    setBound(t.agents);
     setDeferred(!!t.deferred);
     setEnabled(t.enabled);
   }, [edit]);
@@ -677,7 +681,7 @@ function CustomToolDialog({
     };
     try {
       if (isNew) await api.createCustomTool({ key: key.trim(), ...payload });
-      else await api.updateCustomTool(tool!.key, payload);
+      else if (tool) await api.updateCustomTool(tool.key, payload);
       toast.success(isNew ? t("createdCustom") : t("saved"));
       onSaved();
     } catch (e) {

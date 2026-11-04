@@ -54,7 +54,7 @@ function SidePanel({
   const inlineComposer = composerLayout === "inline";
   const [confirm, setConfirm] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
-  const pinned = useRef(true);
+  const pinned = useRef<boolean>(true);
   const tail = side.items.at(-1);
   // biome-ignore lint/correctness/useExhaustiveDependencies: New cumulative text scrolls only readers who remain at the bottom.
   useEffect(() => {

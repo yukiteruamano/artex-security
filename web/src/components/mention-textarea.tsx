@@ -22,7 +22,7 @@ type Props = Omit<React.ComponentProps<"textarea">, "value" | "onChange" | "ref"
 export function MentionTextarea({ value, onValueChange, onKeyDown, className, inputGroup, disabled, ...props }: Props) {
   const t = useTranslations("mentionTextarea");
   const textarea = React.useRef<HTMLTextAreaElement>(null);
-  const composing = React.useRef(false);
+  const composing = React.useRef<boolean>(false);
   const pendingKeyboardIndex = React.useRef<number | null>(null);
   const [cursor, setCursor] = React.useState<number | null>(null);
   const [dismissed, setDismissed] = React.useState(false);

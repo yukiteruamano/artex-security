@@ -417,6 +417,14 @@ export function OverviewTab({ taskId }: { taskId: string }) {
     { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, calls: 0 },
   );
 
+  // Placeholder hint for the scope value field, keyed off the selected scope kind.
+  let scopePlaceholder: string;
+  if (scopeKind === "company") scopePlaceholder = t("scope.placeholder.company");
+  else if (scopeKind === "ip" || scopeKind === "cidr") scopePlaceholder = t("scope.placeholder.ipCidr");
+  else if (scopeKind === "icp") scopePlaceholder = t("scope.placeholder.icp");
+  else if (scopeKind === "keyword") scopePlaceholder = t("scope.placeholder.keyword");
+  else scopePlaceholder = t("scope.placeholder.domain");
+
   return (
     <div className="flex flex-col gap-4">
       {/* Original task description and goals as entered at creation, kept at the top so they can be re-read at any time. */}
@@ -687,7 +695,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
         </CardContent>
       </Card>
       <TaskInterceptRulesCard taskId={taskId} />
-      {coverage && coverage.enabled && coverage.scope_rows > 0 && (
+      {coverage?.enabled && coverage.scope_rows > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -819,17 +827,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
             </NativeSelect>
             <Input
               className="h-7 w-56 text-sm"
-              placeholder={
-                scopeKind === "company"
-                  ? t("scope.placeholder.company")
-                  : scopeKind === "ip" || scopeKind === "cidr"
-                    ? t("scope.placeholder.ipCidr")
-                    : scopeKind === "icp"
-                      ? t("scope.placeholder.icp")
-                      : scopeKind === "keyword"
-                        ? t("scope.placeholder.keyword")
-                        : t("scope.placeholder.domain")
-              }
+              placeholder={scopePlaceholder}
               value={scopeValueInput}
               onChange={(e) => setScopeValueInput(e.target.value)}
               onKeyDown={(e) => {

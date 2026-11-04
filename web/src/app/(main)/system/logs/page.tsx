@@ -70,7 +70,7 @@ const levelDot: Record<LogLine["level"], string> = {
 
 function fmtTime(ts: string) {
   const d = new Date(ts);
-  if (isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "";
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
@@ -84,8 +84,8 @@ export default function LogsPage() {
   const [loadingHistory, setLoadingHistory] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(false);
   const bottom = React.useRef<HTMLDivElement>(null);
-  const stick = React.useRef(true);
-  const pausedRef = React.useRef(false);
+  const stick = React.useRef<boolean>(true);
+  const pausedRef = React.useRef<boolean>(false);
   pausedRef.current = paused;
 
   // Minimum db_id seen — used as the cursor for loading older history.
@@ -130,7 +130,7 @@ export default function LogsPage() {
       const res = await fetch(`/api/logs/history${params}`);
       if (!res.ok) return;
       const data = (await res.json()) as { items: LogLine[]; has_more: boolean };
-      if (data.items?.length) {
+      if (data.items.length) {
         // Assign synthetic seq numbers below current minimum to keep dedup working.
         setLines((prev) => {
           const minSeq = prev.reduce((m, l) => Math.min(m, l.seq ?? 0), 0);
@@ -150,7 +150,7 @@ export default function LogsPage() {
           return deduped.slice(-5000);
         });
       }
-      setHasMore(data.has_more ?? false);
+      setHasMore(data.has_more);
     } finally {
       setLoadingHistory(false);
     }

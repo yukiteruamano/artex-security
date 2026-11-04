@@ -78,49 +78,52 @@ export function TrafficEvidenceViewer({
             {detail?.binding.snapshot.url ?? t("viewer.fallbackDesc")}
           </DialogDescription>
         </DialogHeader>
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : detail ? (
-          <Tabs defaultValue="request">
-            <TabsList>
-              <TabsTrigger value="request">{t("viewer.request")}</TabsTrigger>
-              <TabsTrigger value="response">{t("viewer.response")}</TabsTrigger>
-            </TabsList>
-            {(["request", "response"] as const).map((side) => (
-              <TabsContent key={side} value={side}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {t("viewer.bodyBytes", { bytes: detail[side].total.toLocaleString() })}
-                    {detail[side].truncated ? t("viewer.previewSuffix") : ""}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      void api
-                        .downloadFindingTrafficBody(findingId, detail.binding.id, side, contextTask)
-                        .catch((e: Error) => toast.error(e.message))
-                    }
-                  >
-                    {side === "request" ? t("viewer.downloadRequest") : t("viewer.downloadResponse")}
-                  </Button>
-                </div>
-                <HttpCodeBlock
-                  raw={`${(side === "request" ? detail.binding.snapshot.req_head : detail.binding.snapshot.resp_head)?.trimEnd() ?? ""}\n\n${detail[side].content}`}
-                />
-                {detail[side].truncated && !detail[side].binary ? (
-                  <Button variant="outline" size="sm" disabled={busy} onClick={() => void more(side)}>
-                    {t("viewer.loadMore")}
-                  </Button>
-                ) : null}
-              </TabsContent>
-            ))}
-          </Tabs>
-        ) : (
-          <Skeleton className="h-56 w-full" />
-        )}
+        {(() => {
+          if (error)
+            return (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            );
+          if (!detail) return <Skeleton className="h-56 w-full" />;
+          return (
+            <Tabs defaultValue="request">
+              <TabsList>
+                <TabsTrigger value="request">{t("viewer.request")}</TabsTrigger>
+                <TabsTrigger value="response">{t("viewer.response")}</TabsTrigger>
+              </TabsList>
+              {(["request", "response"] as const).map((side) => (
+                <TabsContent key={side} value={side}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {t("viewer.bodyBytes", { bytes: detail[side].total.toLocaleString() })}
+                      {detail[side].truncated ? t("viewer.previewSuffix") : ""}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void api
+                          .downloadFindingTrafficBody(findingId, detail.binding.id, side, contextTask)
+                          .catch((e: Error) => toast.error(e.message))
+                      }
+                    >
+                      {side === "request" ? t("viewer.downloadRequest") : t("viewer.downloadResponse")}
+                    </Button>
+                  </div>
+                  <HttpCodeBlock
+                    raw={`${(side === "request" ? detail.binding.snapshot.req_head : detail.binding.snapshot.resp_head)?.trimEnd() ?? ""}\n\n${detail[side].content}`}
+                  />
+                  {detail[side].truncated && !detail[side].binary ? (
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void more(side)}>
+                      {t("viewer.loadMore")}
+                    </Button>
+                  ) : null}
+                </TabsContent>
+              ))}
+            </Tabs>
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );
@@ -159,26 +162,29 @@ export function CapturedTrafficViewer({ id, onClose }: { id: string | null; onCl
           <DialogTitle>{t("captured.title")}</DialogTitle>
           <DialogDescription>{t("captured.description", { id: id ?? "" })}</DialogDescription>
         </DialogHeader>
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : detail ? (
-          <Tabs defaultValue="request">
-            <TabsList>
-              <TabsTrigger value="request">{t("viewer.request")}</TabsTrigger>
-              <TabsTrigger value="response">{t("viewer.response")}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="request">
-              <HttpCodeBlock raw={detail.req} />
-            </TabsContent>
-            <TabsContent value="response">
-              <HttpCodeBlock raw={detail.resp} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <Skeleton className="h-56 w-full" />
-        )}
+        {(() => {
+          if (error)
+            return (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            );
+          if (!detail) return <Skeleton className="h-56 w-full" />;
+          return (
+            <Tabs defaultValue="request">
+              <TabsList>
+                <TabsTrigger value="request">{t("viewer.request")}</TabsTrigger>
+                <TabsTrigger value="response">{t("viewer.response")}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="request">
+                <HttpCodeBlock raw={detail.req} />
+              </TabsContent>
+              <TabsContent value="response">
+                <HttpCodeBlock raw={detail.resp} />
+              </TabsContent>
+            </Tabs>
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );

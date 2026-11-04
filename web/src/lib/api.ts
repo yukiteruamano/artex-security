@@ -137,6 +137,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   if (r.status === 401) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("artex_token");
+      // biome-ignore lint/suspicious/noDocumentCookie: the token cookie is set client-side; no server round trip exists in the static export
       document.cookie = "artex_token=; path=/; max-age=0";
       window.location.href = "/login";
     }
@@ -771,7 +772,7 @@ export const api = {
   intentsPage: (task: string, before = 0, limit = 300) => {
     const q = new URLSearchParams({ limit: String(limit) });
     if (task) q.set("task", task);
-    q.set("before", String(before > 0 ? before : 0));
+    q.set("before", String(Math.max(before, 0)));
     q.set("page", "1"); // marker so the backend returns the paged {items,has_more} shape
     return get<{ items: TaskNode[]; has_more: boolean }>(`/exploration/intents?${q.toString()}`).then((r) => ({
       items: arr(r.items),

@@ -50,6 +50,13 @@ export function TodoPopover({
 
   const disabled = seq == null;
   const MARK: Record<string, string> = { pending: "☐", in_progress: "▶", completed: "✔" };
+  // Repeated todo texts still need distinct keys, so count repeats as they render.
+  const seenTodoCounts = new Map<string, number>();
+  const todoKey = (content: string) => {
+    const seen = seenTodoCounts.get(content) ?? 0;
+    seenTodoCounts.set(content, seen + 1);
+    return `${seen}-${content}`;
+  };
   return (
     <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
@@ -71,9 +78,9 @@ export function TodoPopover({
         {err && <p className="text-destructive px-1 text-xs">{err}</p>}
         {todos && todos.length === 0 && !loading && <p className="text-muted-foreground px-1 text-xs">{tr("empty")}</p>}
         <ul className="space-y-0.5">
-          {(todos ?? []).map((t, i) => (
+          {(todos ?? []).map((t) => (
             <li
-              key={`${i}:${t.content}`}
+              key={todoKey(t.content)}
               className={cn(
                 "flex gap-1.5 px-1 text-xs",
                 t.status === "completed" && "text-muted-foreground line-through",

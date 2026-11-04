@@ -128,7 +128,7 @@ function groupSteps(steps: Activity[], chat: boolean): Group[] {
 }
 
 // maps a step kind to its translation sub-key under transcript.kind.* (label resolved at render)
-const kindKey = (k: string) => (k === "thinking" ? "thinking" : k === "result" ? "result" : "note");
+const kindKey = (k: string) => (k === "thinking" || k === "result" ? k : "note");
 
 function ActivityTime({ ts }: { ts: string }) {
   const date = new Date(ts);
@@ -149,6 +149,15 @@ function ActivityTime({ ts }: { ts: string }) {
       })}
     </time>
   );
+}
+
+// unescapeJsonChar restores the common JSON escape sequences (\n, \r, \t) that a
+// truncated summary cuts in half; anything else is returned unchanged.
+function unescapeJsonChar(c: string): string {
+  if (c === "n") return "\n";
+  if (c === "r") return "\r";
+  if (c === "t") return "\t";
+  return c;
 }
 
 // toolInputText renders a tool_use input for display. For Bash it pulls the shell
@@ -172,11 +181,27 @@ function toolInputText(tool: string, raw: string): string {
       return JSON.parse(`"${m[1]}"`);
     } catch {
       // truncated mid-escape — unescape the common sequences best-effort.
-      return m[1].replace(/\\(["\\/nrt])/g, (_s, c) => (c === "n" ? "\n" : c === "r" ? "\r" : c === "t" ? "\t" : c));
+      return m[1].replace(/\\(["\\/nrt])/g, (_s, c) => unescapeJsonChar(c));
     }
   }
   return raw;
 }
+
+// badge label + tone for a resolved intercept decision.
+const DECIDED_UI = {
+  allowed: {
+    label: "approval.allowed",
+    tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+  },
+  timeout: {
+    label: "approval.timeout",
+    tone: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+  },
+  denied: {
+    label: "approval.denied",
+    tone: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  },
+};
 
 // InterceptCard renders an inline intercept_request approval card. The pending_id
 // is extracted from the summary (format: "tool X approval request (#N)") so buttons are
@@ -263,6 +288,64 @@ function InterceptCard({ step, getDetail }: { step: Activity; getDetail: (seq: n
     ? { ...pending, status: decided ?? pending.status, conv_title: "", conv_agent_key: "", rule_name: "" }
     : null;
 
+  let actions: React.ReactNode;
+  if (step.inherited) {
+    actions = <Badge variant="outline">{t("approval.historyReadonly")}</Badge>;
+  } else if (decided) {
+    const ui = DECIDED_UI[decided];
+    actions = <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium ${ui.tone}`}>{t(ui.label)}</span>;
+  } else {
+    actions = (
+      <div className="flex shrink-0 gap-1.5">
+        <Button
+          size="sm"
+          className="h-6 px-2 text-xs"
+          disabled={deciding || !pendingId}
+          onClick={() => decide("allowed")}
+        >
+          <CheckIcon className="h-3 w-3" />
+          {t("approval.allow")}
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-6 px-2 text-xs"
+          disabled={deciding || !pendingId}
+          onClick={() => decide("denied")}
+        >
+          <XIcon className="h-3 w-3" />
+          {t("approval.deny")}
+        </Button>
+      </div>
+    );
+  }
+
+  let detailBody: React.ReactNode;
+  if (expanded && row) {
+    detailBody = (
+      <ApprovalDetail
+        row={row}
+        busy={deciding}
+        decide={(_id, decision) => decide(decision)}
+        revision={retry}
+        readOnly={Boolean(step.inherited)}
+        defaultExpanded
+        onResolved={setDecided}
+      />
+    );
+  } else if (statusError) {
+    detailBody = (
+      <div className="flex flex-wrap items-center gap-2 p-3" role="alert">
+        <span>{statusError}</span>
+        <Button variant="outline" size="sm" onClick={() => setRetry((value) => value + 1)}>
+          {t("approval.retry")}
+        </Button>
+      </div>
+    );
+  } else {
+    detailBody = <p className="p-3 text-muted-foreground">{t("approval.loading")}</p>;
+  }
+
   return (
     <div className="my-2 rounded-lg border border-amber-400/50 bg-amber-50/40 dark:bg-amber-950/15 p-3 text-xs">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -280,48 +363,7 @@ function InterceptCard({ step, getDetail }: { step: Activity; getDetail: (seq: n
           </div>
         </div>
 
-        {step.inherited ? (
-          <Badge variant="outline">{t("approval.historyReadonly")}</Badge>
-        ) : decided ? (
-          <span
-            className={
-              "shrink-0 rounded px-2 py-0.5 text-[11px] font-medium " +
-              (decided === "allowed"
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                : decided === "timeout"
-                  ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400")
-            }
-          >
-            {decided === "allowed"
-              ? t("approval.allowed")
-              : decided === "timeout"
-                ? t("approval.timeout")
-                : t("approval.denied")}
-          </span>
-        ) : (
-          <div className="flex shrink-0 gap-1.5">
-            <Button
-              size="sm"
-              className="h-6 px-2 text-xs"
-              disabled={deciding || !pendingId}
-              onClick={() => decide("allowed")}
-            >
-              <CheckIcon className="h-3 w-3" />
-              {t("approval.allow")}
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="h-6 px-2 text-xs"
-              disabled={deciding || !pendingId}
-              onClick={() => decide("denied")}
-            >
-              <XIcon className="h-3 w-3" />
-              {t("approval.deny")}
-            </Button>
-          </div>
-        )}
+        {actions}
       </div>
       {pendingId ? (
         <Collapsible open={expanded} onOpenChange={setExpanded} className="mt-2 min-w-0">
@@ -331,28 +373,7 @@ function InterceptCard({ step, getDetail }: { step: Activity; getDetail: (seq: n
               {expanded ? t("approval.collapse") : t("approval.expand")}
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent>
-            {expanded && row ? (
-              <ApprovalDetail
-                row={row}
-                busy={deciding}
-                decide={(_id, decision) => decide(decision)}
-                revision={retry}
-                readOnly={Boolean(step.inherited)}
-                defaultExpanded
-                onResolved={setDecided}
-              />
-            ) : statusError ? (
-              <div className="flex flex-wrap items-center gap-2 p-3" role="alert">
-                <span>{statusError}</span>
-                <Button variant="outline" size="sm" onClick={() => setRetry((value) => value + 1)}>
-                  {t("approval.retry")}
-                </Button>
-              </div>
-            ) : (
-              <p className="p-3 text-muted-foreground">{t("approval.loading")}</p>
-            )}
-          </CollapsibleContent>
+          <CollapsibleContent>{detailBody}</CollapsibleContent>
         </Collapsible>
       ) : null}
     </div>
@@ -386,16 +407,23 @@ function ToolBlock({
   const ToolIcon = toolName === "Bash" ? Terminal : Wrench;
   const running = !result;
   const ok = !!result && !result.is_error;
-  const statusTone = running
-    ? "text-muted-foreground"
-    : ok
-      ? "text-emerald-600 dark:text-emerald-400"
-      : "text-red-600 dark:text-red-400";
-  const rawCmd =
-    use && use.summary.startsWith(toolName) ? use.summary.slice(toolName.length).trimStart() : (use?.summary ?? "");
+  const rawCmd = use?.summary.startsWith(toolName)
+    ? use.summary.slice(toolName.length).trimStart()
+    : (use?.summary ?? "");
   const cmd = toolInputText(toolName, rawCmd);
   // status only — the full result lives behind the expand (output section), not previewed inline
-  const statusText = running ? t("tool.running") : ok ? "✓" : t("tool.failed");
+  let statusTone: string;
+  let statusText: string;
+  if (running) {
+    statusTone = "text-muted-foreground";
+    statusText = t("tool.running");
+  } else if (ok) {
+    statusTone = "text-emerald-600 dark:text-emerald-400";
+    statusText = "✓";
+  } else {
+    statusTone = "text-red-600 dark:text-red-400";
+    statusText = t("tool.failed");
+  }
 
   // key over the seqs we'd load; changes when the result (or command) arrives.
   const detailKey = `${use?.seq ?? ""}:${result?.seq ?? ""}`;
@@ -718,31 +746,34 @@ function ExecView({
   );
   return (
     <div className="flex flex-col">
-      {groupSteps(activity, !!chat).map((g) =>
-        g.type === "round" ? (
-          <div key={`r${g.key}`} className="my-2 flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            {g.label || t("newRound")}
-            <span className="h-px flex-1 bg-border" />
-          </div>
-        ) : g.type === "user" ? (
-          <UserRow key={`u${g.key}`} step={g.step} intent={g.intent} getDetail={getDetail} />
-        ) : g.type === "answer" ? (
-          <AnswerBlock key={`a${g.key}`} step={g.step} getDetail={getDetail} />
-        ) : g.type === "tool" ? (
-          <ToolBlock
-            key={`t${g.key}`}
-            group={g}
-            getDetail={getDetail}
-            showWorker={showWorker}
-            focused={focusedSeq != null && g.use?.seq === focusedSeq}
-          />
-        ) : g.type === "intercept" ? (
-          <InterceptCard key={`ic${g.key}`} step={g.step} getDetail={getDetail} />
-        ) : (
-          <MessageBlock key={`m${g.key}`} group={g} getDetail={getDetail} showWorker={showWorker} />
-        ),
-      )}
+      {groupSteps(activity, !!chat).map((g) => {
+        if (g.type === "round")
+          return (
+            <div
+              key={`r${g.key}`}
+              className="my-2 flex items-center gap-2 text-[10px] font-medium text-muted-foreground"
+            >
+              <span className="h-px flex-1 bg-border" />
+              {g.label || t("newRound")}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          );
+        if (g.type === "user")
+          return <UserRow key={`u${g.key}`} step={g.step} intent={g.intent} getDetail={getDetail} />;
+        if (g.type === "answer") return <AnswerBlock key={`a${g.key}`} step={g.step} getDetail={getDetail} />;
+        if (g.type === "tool")
+          return (
+            <ToolBlock
+              key={`t${g.key}`}
+              group={g}
+              getDetail={getDetail}
+              showWorker={showWorker}
+              focused={focusedSeq != null && g.use?.seq === focusedSeq}
+            />
+          );
+        if (g.type === "intercept") return <InterceptCard key={`ic${g.key}`} step={g.step} getDetail={getDetail} />;
+        return <MessageBlock key={`m${g.key}`} group={g} getDetail={getDetail} showWorker={showWorker} />;
+      })}
     </div>
   );
 }

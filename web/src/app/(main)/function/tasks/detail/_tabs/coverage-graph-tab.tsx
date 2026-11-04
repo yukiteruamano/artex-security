@@ -96,6 +96,12 @@ function sortChildren(a: CoverageGraphNode, b: CoverageGraphNode): number {
   return (a.label || "").localeCompare(b.label || "");
 }
 
+// Structural signature of one visible node: folded, tested, or untested.
+function nodeSig(n: RenderNode): string {
+  if (n.fold) return "f";
+  return n.node.tested ? "t" : "u";
+}
+
 function computeVisible(
   nodes: CoverageGraphNode[],
   edges: CoverageGraphEdge[],
@@ -351,15 +357,11 @@ function AssetSheet({
                   <h4 className="text-muted-foreground mb-1 text-xs font-medium">{t("sheet.attributes")}</h4>
                   <DetailRow label={t("sheet.attrType")}>{kindLabel}</DetailRow>
                   <DetailRow label={t("sheet.attrTestState")}>
-                    {node.in_scope ? (
-                      node.tested ? (
-                        <span className="text-emerald-600 dark:text-emerald-400">{t("sheet.tested")}</span>
-                      ) : (
-                        <span className="text-neutral-500">{t("sheet.untested")}</span>
-                      )
-                    ) : (
-                      <span className="text-neutral-400">{t("sheet.outOfScope")}</span>
+                    {node.in_scope && node.tested && (
+                      <span className="text-emerald-600 dark:text-emerald-400">{t("sheet.tested")}</span>
                     )}
+                    {node.in_scope && !node.tested && <span className="text-neutral-500">{t("sheet.untested")}</span>}
+                    {!node.in_scope && <span className="text-neutral-400">{t("sheet.outOfScope")}</span>}
                   </DetailRow>
                   <DetailRow label={t("sheet.attrDomain")}>{node.domain}</DetailRow>
                   <DetailRow label={t("sheet.attrRootDomain")}>{node.root_domain}</DetailRow>
@@ -521,7 +523,7 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
   const sig = React.useMemo(
     () =>
       `${renderNodes
-        .map((n) => `${n.key}:${n.fold ? "f" : n.node.tested ? "t" : "u"}`)
+        .map((n) => `${n.key}:${nodeSig(n)}`)
         .sort()
         .join(",")}|${renderEdges.length}`,
     [renderNodes, renderEdges],
@@ -591,7 +593,7 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
             distance: (edge: unknown) => {
               // Top-level nodes (company/root domain) sit far from children, leaves closer. edge.source is an id or an already-resolved node.
               const s = (edge as { source: string | { id?: string } }).source;
-              const srcId = typeof s === "string" ? s : (s?.id ?? "");
+              const srcId = typeof s === "string" ? s : (s.id ?? "");
               const src = renderMapRef.current.get(srcId);
               const k = src && !src.fold ? src.kind : "endpoint";
               return k === "company" || k === "root_domain" ? 120 : 60;

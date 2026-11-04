@@ -93,6 +93,96 @@ export function FindingTrafficPanel({
     void mutate(() => api.orderFindingTraffic(findingId, ids, data.version, contextTask));
   }
 
+  let bindingsBody: React.ReactNode;
+  if (!data) {
+    bindingsBody = <Skeleton className="h-28 w-full" />;
+  } else if (data.bindings.length === 0) {
+    bindingsBody = (
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>{t("traffic.empty")}</EmptyTitle>
+          <EmptyDescription>{t("traffic.emptyHint")}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  } else {
+    bindingsBody = data.bindings.map((b, index) => (
+      <div key={b.id} className="flex min-w-0 flex-col gap-2 rounded-md border p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">
+            {index + 1}. {t(`traffic.role.${b.role}`)}
+          </Badge>
+          <Badge variant="secondary">
+            {b.snapshot.method} · {b.snapshot.status}
+          </Badge>
+          <span className="text-xs text-muted-foreground">{t("traffic.evidenceNo", { id: b.id })}</span>
+        </div>
+        <Button
+          variant="link"
+          className="h-auto justify-start p-0 text-left whitespace-normal"
+          onClick={() => setPreview(b.id)}
+        >
+          <span className="break-all font-mono text-xs">{b.snapshot.url}</span>
+        </Button>
+        {b.note ? <p className="text-sm whitespace-pre-wrap">{b.note}</p> : null}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            {new Date(b.snapshot.captured_at * 1000).toLocaleString(getDateLocale())}
+          </span>
+          <div className="flex flex-wrap gap-1">
+            <Button variant="outline" size="sm" onClick={() => setPreview(b.id)}>
+              {t("traffic.viewRaw")}
+            </Button>
+            {!readOnly ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setEditing(b);
+                    setRole(b.role);
+                    setNote(b.note);
+                  }}
+                >
+                  {t("traffic.editNote")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("traffic.moveUp", { id: b.id })}
+                  disabled={busy || index === 0}
+                  onClick={() => move(index, -1)}
+                >
+                  <ArrowUpIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("traffic.moveDown", { id: b.id })}
+                  disabled={busy || index === data.bindings.length - 1}
+                  onClick={() => move(index, 1)}
+                >
+                  <ArrowDownIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() =>
+                    void mutate(() => api.removeFindingTraffic(findingId, b.id, data.version, contextTask))
+                  }
+                >
+                  {t("traffic.unbind")}
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    ));
+  }
+
   return (
     <>
       <Card>
@@ -123,92 +213,7 @@ export function FindingTrafficPanel({
               </AlertDescription>
             </Alert>
           ) : null}
-          {!data ? (
-            <Skeleton className="h-28 w-full" />
-          ) : data.bindings.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyTitle>{t("traffic.empty")}</EmptyTitle>
-                <EmptyDescription>{t("traffic.emptyHint")}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            data.bindings.map((b, index) => (
-              <div key={b.id} className="flex min-w-0 flex-col gap-2 rounded-md border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">
-                    {index + 1}. {t(`traffic.role.${b.role}`)}
-                  </Badge>
-                  <Badge variant="secondary">
-                    {b.snapshot.method} · {b.snapshot.status}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{t("traffic.evidenceNo", { id: b.id })}</span>
-                </div>
-                <Button
-                  variant="link"
-                  className="h-auto justify-start p-0 text-left whitespace-normal"
-                  onClick={() => setPreview(b.id)}
-                >
-                  <span className="break-all font-mono text-xs">{b.snapshot.url}</span>
-                </Button>
-                {b.note ? <p className="text-sm whitespace-pre-wrap">{b.note}</p> : null}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(b.snapshot.captured_at * 1000).toLocaleString(getDateLocale())}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    <Button variant="outline" size="sm" onClick={() => setPreview(b.id)}>
-                      {t("traffic.viewRaw")}
-                    </Button>
-                    {!readOnly ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => {
-                            setEditing(b);
-                            setRole(b.role);
-                            setNote(b.note);
-                          }}
-                        >
-                          {t("traffic.editNote")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("traffic.moveUp", { id: b.id })}
-                          disabled={busy || index === 0}
-                          onClick={() => move(index, -1)}
-                        >
-                          <ArrowUpIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t("traffic.moveDown", { id: b.id })}
-                          disabled={busy || index === data.bindings.length - 1}
-                          onClick={() => move(index, 1)}
-                        >
-                          <ArrowDownIcon />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() =>
-                            void mutate(() => api.removeFindingTraffic(findingId, b.id, data.version, contextTask))
-                          }
-                        >
-                          {t("traffic.unbind")}
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+          {bindingsBody}
         </CardContent>
       </Card>
       {adding && data ? (

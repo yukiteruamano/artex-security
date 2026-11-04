@@ -144,6 +144,14 @@ export function HttpCodeBlock({ raw }: { raw: string }) {
     return <HighlightedBody body={line} format={bodyFormat} />;
   };
 
+  // Repeated lines (blank ones, closing braces) still need distinct keys, so count repeats as they render.
+  const seenLineCounts = new Map<string, number>();
+  const lineKey = (line: string) => {
+    const seen = seenLineCounts.get(line) ?? 0;
+    seenLineCounts.set(line, seen + 1);
+    return `${seen}-${line}`;
+  };
+
   return (
     <div className="relative mx-3 my-4 overflow-hidden rounded-md border bg-background shadow-xs">
       <div className="absolute top-2 right-2 flex items-center gap-0.5 rounded-md border bg-background/95 p-0.5 shadow-xs">
@@ -198,7 +206,7 @@ export function HttpCodeBlock({ raw }: { raw: string }) {
       >
         {lines.map((line, index) => (
           <div
-            key={`${index}-${line}`}
+            key={lineKey(line)}
             data-line={index + 1}
             className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] leading-relaxed before:sticky before:left-0 before:self-stretch before:border-r before:bg-muted/20 before:px-1 before:text-right before:text-muted-foreground/60 before:content-[attr(data-line)]"
           >

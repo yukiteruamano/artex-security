@@ -84,7 +84,7 @@ for (const absFile of scannedFiles) {
       // with substitutions is not reached here.
       if (CJK.test(node.text)) record(node.getStart(sf), "string", node.text);
     } else if (ts.isTemplateExpression(node)) {
-      const text = [node.head.text, ...node.templateSpans.map((s) => s.literal.text)].join("${…}");
+      const text = [node.head.text, ...node.templateSpans.map((s) => s.literal.text)].join(`\${…}`);
       if (CJK.test(text)) record(node.getStart(sf), "template", text);
     } else if (ts.isJsxText(node)) {
       const text = normalizeJsxText(node.text);

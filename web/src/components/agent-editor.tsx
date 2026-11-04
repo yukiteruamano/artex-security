@@ -303,10 +303,9 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
   const showWebSearch = agentKey !== "goals";
   // interactive shell (the persistent PTY session tool family) is likewise open to every agent except goals; no global gate.
   const showInteractiveShell = agentKey !== "goals";
-  // Every agent (including goals/mainagent) runs on some LLM, so the "default model" binding is open to all agents.
-  const showLLM = true;
+  // Every agent (including goals/mainagent) runs on some LLM, so the "default model" binding is always shown.
   // triggers (P3) only attach to custom agents.
-  const isCustom = !!detail && !detail.agent?.builtin;
+  const isCustom = !!detail && !detail.agent.builtin;
 
   return (
     <Tabs defaultValue="prompt" className="flex min-h-0 flex-1 flex-col">
@@ -322,100 +321,96 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
       {/* Settings + prompt */}
       <TabsContent value="prompt" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         <div className="grid gap-4">
-          {(showLLM || showConfig || showWebSearch || showInteractiveShell) && (
-            <div className="grid gap-3 rounded-md border p-3">
-              {showLLM && (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="llm-profile" className="text-xs">
-                    {tr("llm.label")}
-                  </Label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Select
-                      value={llmProfileId || "__follow__"}
-                      onValueChange={(v) => setLlmProfileId(v === "__follow__" ? "" : v)}
-                    >
-                      <SelectTrigger id="llm-profile" className="h-8 w-72">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__follow__">{tr("llm.follow")}</SelectItem>
-                        {llmProfiles.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {p.name}({p.model}){p.is_default ? tr("llm.defaultSuffix") : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-muted-foreground max-w-md text-xs">{tr("llm.hint")}</span>
-                  </div>
-                </div>
-              )}
-              <div className="flex flex-wrap items-end gap-3">
-                {showConfig && (
-                  <>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="max-turns" className="text-xs">
-                        {tr("config.maxTurns")}
-                      </Label>
-                      <Input
-                        id="max-turns"
-                        type="number"
-                        min={0}
-                        className="h-8 w-32"
-                        value={maxTurns}
-                        onChange={(e) => setMaxTurns(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="run-seconds" className="text-xs">
-                        {tr("config.runSeconds")}
-                      </Label>
-                      <Input
-                        id="run-seconds"
-                        type="number"
-                        min={0}
-                        className="h-8 w-32"
-                        value={runSecs}
-                        onChange={(e) => setRunSecs(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-                <Button size="sm" variant="outline" onClick={saveConfig}>
-                  <SaveIcon /> {tr("config.save")}
-                </Button>
+          <div className="grid gap-3 rounded-md border p-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="llm-profile" className="text-xs">
+                {tr("llm.label")}
+              </Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={llmProfileId || "__follow__"}
+                  onValueChange={(v) => setLlmProfileId(v === "__follow__" ? "" : v)}
+                >
+                  <SelectTrigger id="llm-profile" className="h-8 w-72">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__follow__">{tr("llm.follow")}</SelectItem>
+                    {llmProfiles.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}({p.model}){p.is_default ? tr("llm.defaultSuffix") : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-muted-foreground max-w-md text-xs">{tr("llm.hint")}</span>
               </div>
-              {showWebSearch && (
-                <div className="flex items-center gap-3 border-t pt-3">
-                  <Switch
-                    id="web-search"
-                    checked={webSearch}
-                    disabled={!webSearchGlobalOn}
-                    onCheckedChange={setWebSearch}
-                  />
-                  <div className="grid gap-0.5">
-                    <Label htmlFor="web-search" className="text-sm">
-                      {tr("webSearch.label")}
-                    </Label>
-                    <span className="text-muted-foreground text-xs">
-                      {webSearchGlobalOn ? tr("webSearch.onHint") : tr("webSearch.offHint")}
-                    </span>
-                  </div>
-                </div>
-              )}
-              {showInteractiveShell && (
-                <div className="flex items-center gap-3 border-t pt-3">
-                  <Switch id="interactive-shell" checked={interactiveShell} onCheckedChange={setInteractiveShell} />
-                  <div className="grid gap-0.5">
-                    <Label htmlFor="interactive-shell" className="text-sm">
-                      {tr("shell.label")}
-                    </Label>
-                    <span className="text-muted-foreground text-xs">{tr("shell.hint")}</span>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
+            <div className="flex flex-wrap items-end gap-3">
+              {showConfig && (
+                <>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="max-turns" className="text-xs">
+                      {tr("config.maxTurns")}
+                    </Label>
+                    <Input
+                      id="max-turns"
+                      type="number"
+                      min={0}
+                      className="h-8 w-32"
+                      value={maxTurns}
+                      onChange={(e) => setMaxTurns(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="run-seconds" className="text-xs">
+                      {tr("config.runSeconds")}
+                    </Label>
+                    <Input
+                      id="run-seconds"
+                      type="number"
+                      min={0}
+                      className="h-8 w-32"
+                      value={runSecs}
+                      onChange={(e) => setRunSecs(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+              <Button size="sm" variant="outline" onClick={saveConfig}>
+                <SaveIcon /> {tr("config.save")}
+              </Button>
+            </div>
+            {showWebSearch && (
+              <div className="flex items-center gap-3 border-t pt-3">
+                <Switch
+                  id="web-search"
+                  checked={webSearch}
+                  disabled={!webSearchGlobalOn}
+                  onCheckedChange={setWebSearch}
+                />
+                <div className="grid gap-0.5">
+                  <Label htmlFor="web-search" className="text-sm">
+                    {tr("webSearch.label")}
+                  </Label>
+                  <span className="text-muted-foreground text-xs">
+                    {webSearchGlobalOn ? tr("webSearch.onHint") : tr("webSearch.offHint")}
+                  </span>
+                </div>
+              </div>
+            )}
+            {showInteractiveShell && (
+              <div className="flex items-center gap-3 border-t pt-3">
+                <Switch id="interactive-shell" checked={interactiveShell} onCheckedChange={setInteractiveShell} />
+                <div className="grid gap-0.5">
+                  <Label htmlFor="interactive-shell" className="text-sm">
+                    {tr("shell.label")}
+                  </Label>
+                  <span className="text-muted-foreground text-xs">{tr("shell.hint")}</span>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="grid gap-2">
             <Label className="text-muted-foreground text-xs">{tr("prompt.varsLabel")}</Label>
@@ -815,6 +810,22 @@ export function AgentEditor({ agentKey, onSaved }: { agentKey: string; onSaved?:
 
 type DiffLine = { type: "same" | "add" | "del"; text: string };
 
+// diffSign is the one-character gutter marker for a diff line.
+function diffSign(type: DiffLine["type"]): string {
+  if (type === "del") return "-";
+  if (type === "add") return "+";
+  return " ";
+}
+
+function diffRowClass(type: DiffLine["type"]): string {
+  return cn(
+    "whitespace-pre-wrap px-1",
+    type === "del" && "bg-red-500/15 text-red-700 dark:text-red-400",
+    type === "add" && "bg-green-500/15 text-green-700 dark:text-green-400",
+    type === "same" && "text-muted-foreground",
+  );
+}
+
 function computeDiff(oldText: string, newText: string): DiffLine[] {
   const a = oldText.split("\n");
   const b = newText.split("\n");
@@ -847,20 +858,15 @@ function DiffView({ oldText, newText }: { oldText: string; newText: string }) {
   const lines = React.useMemo(() => computeDiff(oldText, newText), [oldText, newText]);
   return (
     <pre className="max-h-[60vh] overflow-auto rounded-md border bg-muted/30 p-2 font-mono text-xs leading-5">
-      {lines.map((l, idx) => (
-        <div
-          key={idx}
-          className={cn(
-            "whitespace-pre-wrap px-1",
-            l.type === "del" && "bg-red-500/15 text-red-700 dark:text-red-400",
-            l.type === "add" && "bg-green-500/15 text-green-700 dark:text-green-400",
-            l.type === "same" && "text-muted-foreground",
-          )}
-        >
-          <span className="select-none mr-1 opacity-50">{l.type === "del" ? "-" : l.type === "add" ? "+" : " "}</span>
-          {l.text}
-        </div>
-      ))}
+      {lines.map((l, idx) => {
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: diff lines have no stable id; the array is recomputed from props and never reordered
+          <div key={idx} className={diffRowClass(l.type)}>
+            <span className="select-none mr-1 opacity-50">{diffSign(l.type)}</span>
+            {l.text}
+          </div>
+        );
+      })}
     </pre>
   );
 }
@@ -966,7 +972,7 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
     setTaskTimeoutMsg(t.task_timeout_message);
     setToolCallMsg(t.tool_call_message);
     setTaskCreateMsg(t.task_create_message);
-    setToolNames(t.tool_names ?? []);
+    setToolNames(t.tool_names);
   }
 
   // submit takes add or save-changes depending on editingId; when editing it preserves the trigger's enabled state.
@@ -1060,6 +1066,17 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
     return parts.join(" · ") || tr("triggers.cond.none");
   }
 
+  let policyLabel: string;
+  if (runMode === "parallel") {
+    policyLabel = tr("triggers.policyParallel");
+  } else if (mergeMode === "by_task") {
+    policyLabel = tr("triggers.policyByTask");
+  } else if (mergeMode === "all") {
+    policyLabel = tr("triggers.policyAll");
+  } else {
+    policyLabel = tr("triggers.policyNone");
+  }
+
   return (
     <div className="grid gap-4">
       <p className="text-muted-foreground text-xs">{tr.rich("triggers.desc", { b: (c) => <b>{c}</b> })}</p>
@@ -1131,15 +1148,7 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
             </div>
           )}
         </div>
-        <p className="text-muted-foreground text-xs">
-          {runMode === "parallel"
-            ? tr("triggers.policyParallel")
-            : mergeMode === "by_task"
-              ? tr("triggers.policyByTask")
-              : mergeMode === "all"
-                ? tr("triggers.policyAll")
-                : tr("triggers.policyNone")}
-        </p>
+        <p className="text-muted-foreground text-xs">{policyLabel}</p>
       </div>
 
       {/* Add / edit trigger */}

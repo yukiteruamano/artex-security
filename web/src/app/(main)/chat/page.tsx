@@ -78,16 +78,6 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-// fmtDuration renders an elapsed milliseconds span compactly (90s → 1m30s).
-function fmtDuration(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m${String(s % 60).padStart(2, "0")}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h${String(m % 60).padStart(2, "0")}m`;
-}
-
 // HISTORY_PAGE is how many steps one history page loads: the latest page on open,
 // then one more page each time the user scrolls to the top. Kept modest so a long
 // thread stays snappy (only ~a page of rows is in the DOM until you scroll up).
@@ -535,7 +525,7 @@ function ChatView({
   const cursorRef = React.useRef(0); // newest loaded id — incremental-tail anchor
   const earliestRef = React.useRef(0); // earliest loaded id — reverse-pagination anchor
   const hasMoreRef = React.useRef(false); // older history remains above the loaded window
-  const loadingMoreRef = React.useRef(false); // guard: one scroll-up load at a time
+  const loadingMoreRef = React.useRef<boolean>(false); // guard: one scroll-up load at a time
   const [historyLoaded, setHistoryLoaded] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(false); // drives the "load earlier" hint
   const agent = agents.find((a) => a.key === conv.agent_key);
@@ -923,7 +913,7 @@ const ConversationItem = React.memo(function ConversationItem({
   const t = useTranslations("chat");
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const renameInputRef = React.useRef<HTMLInputElement>(null);
-  const cancelRenameRef = React.useRef(false);
+  const cancelRenameRef = React.useRef<boolean>(false);
   const pinned = conversationIsPinned(conv);
 
   React.useEffect(() => {
@@ -1411,6 +1401,49 @@ export default function ChatPage() {
   );
   const cancelRename = React.useCallback(() => setRenamingId(null), []);
 
+  let chatPane: React.ReactNode;
+  if (selected) {
+    chatPane = (
+      <ChatView
+        key={selected.id}
+        conv={selected}
+        agents={agents}
+        profiles={profiles}
+        initial={pendingByConv[selected.id]}
+        onTitleMaybeChanged={reloadConvs}
+        onConvUpdated={reloadConvs}
+      />
+    );
+  } else if (sourceRequested) {
+    chatPane = (
+      <div role="status" className="p-6 text-sm text-muted-foreground">
+        {convsLoaded ? t("deletedConversation") : t("loadingConversation")}
+      </div>
+    );
+  } else {
+    chatPane = (
+      <DraftChat
+        agents={chatAgents}
+        profiles={profiles}
+        onStarted={(c, pending) => {
+          if (agentFilter !== null && agentFilter !== c.agent_key) changeAgentFilter(null);
+          // Insert the new conversation immediately so `selected` resolves to
+          // it on this render (switching to ChatView right away, before the
+          // async reloadConvs lands); reloadConvs then reconciles titles etc.
+          if (pending) setPendingByConv((p) => ({ ...p, [c.id]: pending }));
+          setConvs((prev) => {
+            if (prev.some((item) => item.id === c.id)) return prev;
+            const firstUnpinned = prev.findIndex((item) => !conversationIsPinned(item));
+            const insertAt = firstUnpinned < 0 ? prev.length : firstUnpinned;
+            return [...prev.slice(0, insertAt), c, ...prev.slice(insertAt)];
+          });
+          setSelectedId(c.id);
+          void reloadConvs();
+        }}
+      />
+    );
+  }
+
   return (
     <div
       data-content-padding="false"
@@ -1572,43 +1605,7 @@ export default function ChatPage() {
         </div>
 
         {/* right: chat view */}
-        <div className="bg-card flex min-w-0 flex-col overflow-hidden rounded-lg border">
-          {selected ? (
-            <ChatView
-              key={selected.id}
-              conv={selected}
-              agents={agents}
-              profiles={profiles}
-              initial={pendingByConv[selected.id]}
-              onTitleMaybeChanged={reloadConvs}
-              onConvUpdated={reloadConvs}
-            />
-          ) : sourceRequested ? (
-            <div role="status" className="p-6 text-sm text-muted-foreground">
-              {convsLoaded ? t("deletedConversation") : t("loadingConversation")}
-            </div>
-          ) : (
-            <DraftChat
-              agents={chatAgents}
-              profiles={profiles}
-              onStarted={(c, pending) => {
-                if (agentFilter !== null && agentFilter !== c.agent_key) changeAgentFilter(null);
-                // Insert the new conversation immediately so `selected` resolves to
-                // it on this render (switching to ChatView right away, before the
-                // async reloadConvs lands); reloadConvs then reconciles titles etc.
-                if (pending) setPendingByConv((p) => ({ ...p, [c.id]: pending }));
-                setConvs((prev) => {
-                  if (prev.some((item) => item.id === c.id)) return prev;
-                  const firstUnpinned = prev.findIndex((item) => !conversationIsPinned(item));
-                  const insertAt = firstUnpinned < 0 ? prev.length : firstUnpinned;
-                  return [...prev.slice(0, insertAt), c, ...prev.slice(insertAt)];
-                });
-                setSelectedId(c.id);
-                void reloadConvs();
-              }}
-            />
-          )}
-        </div>
+        <div className="bg-card flex min-w-0 flex-col overflow-hidden rounded-lg border">{chatPane}</div>
       </div>
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent>

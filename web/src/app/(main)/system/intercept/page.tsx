@@ -624,6 +624,8 @@ export default function InterceptPage() {
     ].filter((g) => g.tools.length > 0);
   }, [allTools, t]);
 
+  const rulesEmpty = rules.length === 0;
+
   // ---- render ----
 
   return (
@@ -688,9 +690,8 @@ export default function InterceptPage() {
 
           <Card>
             <CardContent className="p-0">
-              {loading ? (
-                <p className="p-6 text-sm text-muted-foreground">{t("rules.loading")}</p>
-              ) : rules.length === 0 ? (
+              {loading && <p className="p-6 text-sm text-muted-foreground">{t("rules.loading")}</p>}
+              {!loading && rulesEmpty && (
                 <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
                   <ShieldAlertIcon className="h-8 w-8 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground">{t("rules.empty")}</p>
@@ -699,7 +700,8 @@ export default function InterceptPage() {
                     {t("rules.addFirst")}
                   </Button>
                 </div>
-              ) : (
+              )}
+              {!loading && !rulesEmpty && (
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -792,7 +794,7 @@ export default function InterceptPage() {
               <Input
                 type="number"
                 value={form.priority}
-                onChange={(e) => set({ priority: parseInt(e.target.value) || 0 })}
+                onChange={(e) => set({ priority: parseInt(e.target.value, 10) || 0 })}
               />
             </Field>
 

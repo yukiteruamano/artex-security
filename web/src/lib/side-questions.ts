@@ -47,10 +47,10 @@ export const sideAPI = {
   history: async (parent: string, before = 0) => {
     const data = await request<Partial<SideHistory>>(`${parent}/side-questions?before=${before}`);
     return {
-      items: Array.isArray(data?.items) ? data.items : [],
-      current: data?.current ?? null,
-      next_cursor: Number(data?.next_cursor) || 0,
-      snapshot: data?.snapshot ?? null,
+      items: Array.isArray(data.items) ? data.items : [],
+      current: data.current ?? null,
+      next_cursor: Number(data.next_cursor) || 0,
+      snapshot: data.snapshot ?? null,
     } satisfies SideHistory;
   },
   ask: (parent: string, question: string, client_request_id: string) =>

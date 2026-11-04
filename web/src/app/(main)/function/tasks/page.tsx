@@ -190,12 +190,12 @@ function fmtDuration(sec: number): string {
 function taskDuration(task: Task, nowSec: number): number {
   const start = task.created_unix ?? 0;
   if (!start) return 0;
-  const end =
-    task.status === "running"
-      ? nowSec
-      : task.completed_unix && task.completed_unix > 0
-        ? task.completed_unix
-        : (task.last_activity_unix ?? 0);
+  let end = task.last_activity_unix ?? 0;
+  if (task.status === "running") {
+    end = nowSec;
+  } else if (task.completed_unix && task.completed_unix > 0) {
+    end = task.completed_unix;
+  }
   return end > start ? end - start : 0;
 }
 
@@ -933,15 +933,17 @@ export default function TasksPage() {
               />
             </div>
 
-            {tasks.length === 0 ? (
+            {tasks.length === 0 && (
               <div className="text-muted-foreground mx-4 flex items-center justify-center rounded-lg border border-dashed py-20 text-sm lg:mx-6">
                 {t("empty.noTasks")}
               </div>
-            ) : filtered.length === 0 ? (
+            )}
+            {tasks.length > 0 && filtered.length === 0 && (
               <div className="text-muted-foreground mx-4 flex items-center justify-center rounded-lg border border-dashed py-20 text-sm lg:mx-6">
                 {t("empty.noMatch")}
               </div>
-            ) : (
+            )}
+            {tasks.length > 0 && filtered.length > 0 && (
               /* @container reacts to the "body" width the table occupies, not to the
                  viewport. Expanding the sidebar narrows the body within the same viewport,
                  so viewport-based rules overlap columns at intermediate widths. As the
@@ -1337,7 +1339,7 @@ function TaskNameEditor({ task, onRename }: { task: Task; onRename: (task: Task,
   const [name, setName] = React.useState(task.name ?? "");
   const [saving, setSaving] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const cancelOnBlurRef = React.useRef(false);
+  const cancelOnBlurRef = React.useRef<boolean>(false);
 
   React.useEffect(() => {
     if (!editing) setName(task.name ?? "");
@@ -1887,18 +1889,20 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
             </>
           )}
         </div>
-        {loading ? (
+        {loading && (
           <div className="flex justify-center py-20">
             <Spinner />
           </div>
-        ) : archives.length === 0 ? (
+        )}
+        {!loading && archives.length === 0 && (
           <Empty className="mx-4 border border-dashed lg:mx-6">
             <EmptyHeader>
               <EmptyTitle>{t("archive.emptyTitle")}</EmptyTitle>
               <EmptyDescription>{t("archive.emptyDescription")}</EmptyDescription>
             </EmptyHeader>
           </Empty>
-        ) : (
+        )}
+        {!loading && archives.length > 0 && (
           <Table className="**:data-[slot='table-cell']:px-4 **:data-[slot='table-head']:px-4">
             <TableHeader className="[&_tr]:border-t">
               <TableRow>
@@ -2969,11 +2973,14 @@ function CategoryManagementSheet({
     void moveTask(task, destination.slice("category:".length));
   }
 
-  const saveLabel = saving
-    ? t("categoryManage.saving")
-    : selectedView === "new"
-      ? t("categoryManage.create")
-      : t("categoryManage.save");
+  let saveLabel: string;
+  if (saving) {
+    saveLabel = t("categoryManage.saving");
+  } else if (selectedView === "new") {
+    saveLabel = t("categoryManage.create");
+  } else {
+    saveLabel = t("categoryManage.save");
+  }
 
   return (
     <>

@@ -418,20 +418,24 @@ export default function LLMRecordsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading && records.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center">
-                      <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                    </TableCell>
-                  </TableRow>
-                ) : records.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
-                      {t("empty")}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  records.map((rec) => (
+                {(() => {
+                  if (loading && records.length === 0)
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={8} className="py-12 text-center">
+                          <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  if (records.length === 0)
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                          {t("empty")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  return records.map((rec) => (
                     <TableRow
                       key={rec.id}
                       className={cn("cursor-pointer", selected?.id === rec.id && "bg-accent hover:bg-accent")}
@@ -474,8 +478,8 @@ export default function LLMRecordsPage() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ));
+                })()}
               </TableBody>
             </Table>
           </div>
